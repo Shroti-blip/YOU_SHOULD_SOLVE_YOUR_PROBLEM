@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email OTP Verification</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .theme-sunset {
+            --primary: #FA8231;
+            --secondary: #F97F51;
+            --accent: #FF6B9D;
+            --dark: #3D3D3D;
+            --light: #FFF5E6;
+            --gradient: linear-gradient(135deg, #FA8231 0%, #F97F51 50%, #FF6B9D 100%);
+        }
+
+        body {
+             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .verification-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .icon-wrapper {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+        }
+
+        .icon-wrapper i {
+            color: white;
+            font-size: 35px;
+        }
+
+        h2 {
+            color: var(--dark);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #6c757d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-label {
+            color: var(--dark);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(250, 130, 49, 0.25);
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(250, 130, 49, 0.3);
+        }
+
+        .resend-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .resend-link:hover {
+            color: var(--secondary);
+            text-decoration: underline;
+        }
+
+        .email-badge {
+            background: var(--light);
+            border: 2px solid var(--primary);
+            color: var(--dark);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .info-text {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .info-text i {
+            color: var(--primary);
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body class="theme-sunset">
+<div class="verification-card">
+    <h2 class="text-center">Verify Your Email</h2>
+    <p class="text-center subtitle">Enter the OTP sent to your email address</p>
+
+<!--    <div class="text-center">-->
+<!--            <span class="email-badge">-->
+<!--                <i class="fas fa-envelope"></i> your.email@example.com-->
+<!--            </span>-->
+<!--    </div>-->
+
+    <div class="info-text">
+        <i class="fas fa-info-circle"></i>
+        A 6-digit verification code has been sent to your email. Please check your inbox.
+    </div>
+
+    <form id="otpForm" method="post" th:action="@{/savedata}">
+        <div class="mb-3">
+            <label for="otpInput" class="form-label">Enter OTP Code</label>
+            <input
+                    type="text"
+                    name="userOtp"
+                    class="form-control"
+                    id="otpInput"
+                    placeholder="Enter 6-digit code"
+                    maxlength="6"
+                    pattern="[0-9]{6}"
+                    inputmode="numeric"
+                    required
+            >
+            <small class="text-muted">The code will expire in 10 minutes</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mb-3">
+            <i class="fas fa-check-circle"></i> Verify OTP
+        </button>
+
+        <p class="text-center mb-0">
+            Didn't receive the code? <a href="#" class="resend-link" id="resendLink">Resend OTP</a>
+        </p>
+    </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
