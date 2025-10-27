@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Period;
+import java.util.Optional;
 
 @Controller
 public class UserMasteController {
@@ -25,7 +26,7 @@ public class UserMasteController {
     @Autowired
     EmailService emailService;
 
-    @GetMapping("/getpage")
+    @GetMapping("/register")
     public String getPage(Model model){
         model.addAttribute("user" , new UserMaster());
         return "usermaster/signup";
@@ -119,7 +120,77 @@ public class UserMasteController {
 
     }
 
+    @GetMapping("/login")
+    public String getLoginPage(){
+        return "usermaster/login";
+    }
+
+    @PostMapping("/getloggedin")
+    public String getLogin(Model model , HttpSession session,
+                          @RequestParam("email") String email ,
+                           @RequestParam("password") String password){
+        System.out.println("Inside login mapping");
+
+       Optional<UserMaster> optional =  userMasterRepository.findByEmailAndPassword(email , password);
+       if(optional.isPresent()){
+           UserMaster user = optional.get();//this line is imp.
+           session.setAttribute("user" , user);
+           model.addAttribute("user" , user);
+           System.out.println("User is present.");
+           return "usermaster/dashboard";
+       }
+
+        System.out.println("user does not exist.");
+        model.addAttribute("error", "Invalid email or password");
+        return "usermaster/login";
+    }
 
 
+    @GetMapping("/forgetpassword")
+    public String forgetPassword(){
+        return "usermaster/forgetPassword";
+    }
+
+    @PostMapping("/getEmail")
+    public String getEmail(Model model , HttpSession session ,
+                           String email ){
+
+        try{
+            if(userMasterRepository.findByEmail(email).isPresent()){
+                //generate otp and send that to user.
+                String otp =emailService.sendOtp(email);
+                System.out.println("otp for update password : " + otp);
+                LocalTime currentTime = LocalTime.now();
+                LocalTime tenMinLater = currentTime.plusMinutes(10);
+
+                session.setAttribute("otp" , otp);
+                session.setAttribute("systemTime" , currentTime);
+                session.setAttribute("tenMinLater" , tenMinLater);
+                return "usermaster/updatePassword";
+            }
+        }catch (Exception e){
+            System.out.println("Exception here." + e.getMessage());
+        }
+        System.out.println("Print here");
+        model.addAttribute("error" , "Email does not exist.");
+        return "usermaster/forgetPassword";
+
+    }
+
+    @PostMapping("/resetPassword")
+    public String resetPassword(Model model , @RequestParam("otp") String otp,
+                                HttpSession session){
+        System.out.println("Inside reset password.");
+         String getOtp =  (String) session.getAttribute("otp");
+         String systemOtp = (String) session.getAttribute("systemTime");
+         String time = (String) session.getAttribute("tenMinLater");
+
+         if(!systemOtp.equals(otp)){
+             model.addAttribute("error" , "Invalid OTP.");
+             return "usermaster/updatePassword";
+         }
+
+        return "usermaster/login";
+    }
 
 }
