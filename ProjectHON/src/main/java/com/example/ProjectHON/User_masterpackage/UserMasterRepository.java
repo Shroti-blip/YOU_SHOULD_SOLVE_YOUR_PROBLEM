@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface UserMasterRepository extends JpaRepository<UserMaster,Long> {
     Optional<UserMaster> findByEmail(String email);
+    Optional<UserMaster> findByEmailAndPassword(String email , String password);
 }
