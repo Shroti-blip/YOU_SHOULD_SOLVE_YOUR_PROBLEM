@@ -1,24 +1,25 @@
 package com.example.ProjectHON.User_masterpackage;
 
+import com.example.ProjectHON.SecurityPackage.ValidationConfig;
 import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.Banner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Period;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Controller
 public class UserMasteController {
@@ -27,6 +28,9 @@ public class UserMasteController {
 
     @Autowired
     EmailService emailService;
+
+    @Autowired
+    private ValidationConfig validator;
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -193,90 +197,212 @@ public class UserMasteController {
     }
 
 
-    @PostMapping("/resetPassword")
-    @Transactional
-    public String resetPassword(Model model, @RequestParam("otp") String otp, HttpSession session,
-                                @RequestParam("newPassword") String newPassword,
-                                @RequestParam("confirmPassword") String confirmPassword) {
-        System.out.println("Inside reset password.");
-
-
-        String sessionOtp = (String) session.getAttribute("otp");
-        String email = (String)session.getAttribute("email");
-        LocalTime timeSent = (LocalTime) session.getAttribute("systemTime");
-        LocalTime tenMinLater = (LocalTime) session.getAttribute("tenMinLater");
-
-        // basic null checks
-        if (sessionOtp == null || tenMinLater == null || email == null) {
-            model.addAttribute("error", "Session expired. Please request a new OTP.");
-            return "usermaster/forgetPassword";
-        }
-
-        // trim user input and session otp to avoid whitespace mismatch
-        String userOtp = otp == null ? "" : otp.trim();
-        String expectedOtp = sessionOtp.trim();
-
-        // check expiry
-        if (LocalTime.now().isAfter(tenMinLater)) {
-            model.addAttribute("error", "OTP has expired. Please request a new one.");
-            session.invalidate();
-            return "usermaster/forgetPassword";
-        }
-
-        // compare OTPs
-        if (!sessionOtp.equals(otp.trim())) {
-            model.addAttribute("error", "Invalid OTP.");
-            return "usermaster/updatePassword";
-        }
-
-        if (!newPassword.equals(confirmPassword)) {
-            model.addAttribute("error", "Passwords do not match.");
-            return "usermaster/updatePassword";
-        }
-
-//        if (newPassword.length() < 6) {
-//            model.addAttribute("error", "Password must be at least 6 characters long.");
+//    @PostMapping("/resetPassword")
+//    @Transactional
+//    public String resetPassword(Model model, @RequestParam("otp") String otp, HttpSession session,
+//                                @RequestParam("newPassword") String newPassword,
+//                                @RequestParam("confirmPassword") String confirmPassword) {
+//        System.out.println("Inside reset password.");
+//
+//
+//        String sessionOtp = (String) session.getAttribute("otp");
+//        String email = (String)session.getAttribute("email");
+//        LocalTime timeSent = (LocalTime) session.getAttribute("systemTime");
+//        LocalTime tenMinLater = (LocalTime) session.getAttribute("tenMinLater");
+//
+//        // basic null checks
+//        if (sessionOtp == null || tenMinLater == null || email == null) {
+//            model.addAttribute("error", "Session expired. Please request a new OTP.");
+//            return "usermaster/forgetPassword";
+//        }
+//
+//        // trim user input and session otp to avoid whitespace mismatch
+//        String userOtp = otp == null ? "" : otp.trim();
+//        String expectedOtp = sessionOtp.trim();
+//
+//        // check expiry
+//        if (LocalTime.now().isAfter(tenMinLater)) {
+//            model.addAttribute("error", "OTP has expired. Please request a new one.");
+//            session.invalidate();
+//            return "usermaster/forgetPassword";
+//        }
+//
+//        // compare OTPs
+//        if (!sessionOtp.equals(otp.trim())) {
+//            model.addAttribute("error", "Invalid OTP.");
 //            return "usermaster/updatePassword";
 //        }
-
-        try{
-            Optional<UserMaster> userOpt = userMasterRepository.findByEmail(email);
-            System.out.println("Inside try and catch.");
-            if(userOpt.isPresent()){
-
+//
+//        if (!newPassword.equals(confirmPassword)) {
+//            model.addAttribute("error", "Passwords do not match.");
+//            return "usermaster/updatePassword";
+//        }
+//
+////        if (newPassword.length() < 6) {
+////            model.addAttribute("error", "Password must be at least 6 characters long.");
+////            return "usermaster/updatePassword";
+////        }
+//
+//        try{
+//            Optional<UserMaster> userOpt = userMasterRepository.findByEmail(email);
+//            System.out.println("Inside try and catch.");
+//            if(userOpt.isPresent()){
+//
 //                if (!newPassword.matches("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$")) {
 //                    model.addAttribute("error", "Password must be 6–15 characters long and include at least 1 letter, 1 number, and 1 special character.");
 //                    return "usermaster/updatePassword";
 //                }
+//
+//
+//
+//                //encrypt before saving.
+//                String encryptedPassword = passwordEncoder.encode(newPassword);
+//                System.out.println("=================Inside saving process=============.");
+//                UserMaster userMaster = userOpt.get();
+//                userMaster.setPassword(encryptedPassword);
+//                userMasterRepository.save(userMaster);
+//                System.out.println("================Inside try and catch save data===============");
+//                model.addAttribute("success", "Password reset successfully. Please login.");
+//                return "usermaster/login";
+//            }
+//            else {
+//                model.addAttribute("error", "User not found.");
+//                return "usermaster/forgetPassword";
+//            }
+//
+//        }catch (Exception e){
+//            model.addAttribute("error", "Error updating password: " + e.getMessage());
+//            return "usermaster/updatePassword";
+//        }
+//
+//    }
+@PostMapping("/resetPassword")
+@Transactional
+public String resetPassword(Model model,
+                            @RequestParam("otp") String otp,
+                            HttpSession session,
+                            @RequestParam("newPassword") String newPassword,
+                            @RequestParam("confirmPassword") String confirmPassword) {
 
+    System.out.println("Inside reset password.");
 
+    String sessionOtp = (String) session.getAttribute("otp");
+    String email = (String) session.getAttribute("email");
+    LocalTime tenMinLater = (LocalTime) session.getAttribute("tenMinLater");
 
-                //encrypt before saving.
-                String encryptedPassword = passwordEncoder.encode(newPassword);
-                System.out.println("=================Inside saving process=============.");
-                UserMaster userMaster = userOpt.get();
-                userMaster.setPassword(encryptedPassword);
-                userMasterRepository.save(userMaster);
-                System.out.println("================Inside try and catch save data===============");
-                model.addAttribute("success", "Password reset successfully. Please login.");
-                return "usermaster/login";
+    //  Basic null checks
+    if (sessionOtp == null || tenMinLater == null || email == null) {
+        model.addAttribute("error", "Session expired. Please request a new OTP.");
+        return "usermaster/forgetPassword";
+    }
+
+    //  Check OTP expiry
+    if (LocalTime.now().isAfter(tenMinLater)) {
+        model.addAttribute("error", "OTP has expired. Please request a new one.");
+        session.invalidate();
+        return "usermaster/forgetPassword";
+    }
+
+    //  Compare OTPs
+    if (!sessionOtp.trim().equals(otp.trim())) {
+        model.addAttribute("error", "Invalid OTP.");
+        return "usermaster/updatePassword";
+    }
+
+    //  Match both passwords
+    if (!newPassword.equals(confirmPassword)) {
+        model.addAttribute("error", "Passwords do not match.");
+        return "usermaster/updatePassword";
+    }
+
+    try {
+        Optional<UserMaster> userOpt = userMasterRepository.findByEmail(email);
+        System.out.println("Inside try and catch.");
+
+        if (userOpt.isPresent()) {
+            UserMaster userMaster = userOpt.get();
+
+            //  Set raw password for validation
+            userMaster.setRawPassword(newPassword);
+
+            // Validate the raw password using Bean Validation
+            Set<ConstraintViolation<UserMaster>> violations = validator.validator().validateProperty(userMaster, "rawPassword");
+            if (!violations.isEmpty()) {
+                String errorMessage = violations.iterator().next().getMessage();
+                model.addAttribute("error", errorMessage);
+                return "usermaster/updatePassword";
             }
-            else {
-                model.addAttribute("error", "User not found.");
-                return "usermaster/forgetPassword";
-            }
 
-        }catch (Exception e){
-            model.addAttribute("error", "Error updating password: " + e.getMessage());
-            return "usermaster/updatePassword";
+            //  Encrypt before saving
+            String encryptedPassword = passwordEncoder.encode(newPassword);
+            userMaster.setPassword(encryptedPassword);
+
+            System.out.println("=================Inside saving process=============.");
+            userMasterRepository.save(userMaster);
+            System.out.println("================Inside try and catch save data===============");
+
+            model.addAttribute("success", "Password reset successfully. Please login.");
+            return "usermaster/login";
+        } else {
+            model.addAttribute("error", "User not found.");
+            return "usermaster/forgetPassword";
         }
 
-//        session.removeAttribute("otp");
-//        session.removeAttribute("systemTime");
-//        session.removeAttribute("tenMinLater");
-
-//        return "usermaster/login";
+    } catch (Exception e) {
+        e.printStackTrace();
+        model.addAttribute("error", "Error updating password: " + e.getMessage());
+        return "usermaster/updatePassword";
     }
+}
+
+    @GetMapping("/resendOTP")
+    @ResponseBody
+    public Map<String, String> resendOTP(HttpSession session) {
+        Map<String, String> response = new HashMap<>();
+        try {
+            UserMaster user = (UserMaster) session.getAttribute("user");
+            String otp = emailService.sendOtp(user.getEmail());
+
+            LocalTime currentTime = LocalTime.now();
+            LocalTime tenMinutesLater = currentTime.plusMinutes(10);
+
+            session.setAttribute("systemOTP", otp);
+            session.setAttribute("tenMinutesLater", tenMinutesLater);
+
+            response.put("status", "success");
+            response.put("message", "OTP has been sent again!");
+
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "Failed to resend OTP. Please try again.");
+        }
+
+        return response;
+    }
+
+
+
+
+//    @GetMapping("/resendOTP")
+////    @ResponseBody
+//    public String resendOTP(HttpSession session,Model model){
+//        try {
+//            UserMaster user = (UserMaster) session.getAttribute("user");
+//            String otp =emailService.sendOtp(user.getEmail());
+//            LocalTime currentTime =LocalTime.now();
+//            System.out.println("Current time is " + currentTime);
+//            //Add 10 minute more
+//            LocalTime tenMinutesLater = currentTime.plusMinutes(10);
+//
+//            session.setAttribute("systemOTP" , otp);
+//            session.setAttribute("tenMinutesLater" , tenMinutesLater);
+//
+//            return "redirect:/savedata" ;
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//    }
 
 
 //    @PostMapping("/resetPassword")
