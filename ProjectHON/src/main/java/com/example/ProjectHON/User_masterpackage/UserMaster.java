@@ -43,11 +43,24 @@ public class UserMaster{
     @Size(min = 4, max = 20, message = "Username must be 4–20 characters long")
     private String username;
 
-    @Pattern(
-            regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{6,15}$",
-            message = "Password must be 6–15 characters long and include at least 1 letter and 1 number"
-    )
-    private String password;
+//    @Pattern(
+//            regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{6,15}$",
+//            message = "Password must be 6–15 characters long and include at least 1 letter and 1 number"
+//    )
+//@Size(min = 6, max = 15, message = "Password must be between 6 and 15 characters")
+//@Pattern(
+//        regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$",
+//        message = "Password must be 6–15 characters long and include at least 1 letter, 1 number, and 1 special character."
+//)
+// 🟩 Add a transient field for validation
+@Transient
+@Pattern(
+        regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$",
+        message = "Password must be 6–15 characters long and include at least 1 letter, 1 number, and 1 special character."
+)
+private String rawPassword;
+
+private String password;
 
     @Email(message = "Please enter a valid email address")
     private String email;
@@ -261,5 +274,13 @@ public class UserMaster{
 
     public void setJiolocation(String jiolocation) {
         this.jiolocation = jiolocation;
+    }
+
+    public String getRawPassword() {
+        return rawPassword;
+    }
+
+    public void setRawPassword(String rawPassword) {
+        this.rawPassword = rawPassword;
     }
 }
