@@ -41,10 +41,10 @@ public class UserMasteController {
         return "usermaster/signup";
     }
 
+//      @RequestParam("photo") MultipartFile profile_pic,
     @PostMapping("/getotp")
     public String saveInfo(@Valid @ModelAttribute("user") UserMaster user,
                            BindingResult bindingResult,
-                           @RequestParam("photo") MultipartFile profile_pic,
                            Model model,
                            HttpSession session){
         if(bindingResult.hasErrors()){
@@ -65,9 +65,9 @@ public class UserMasteController {
                        model.addAttribute("error", "Email address already exists");
                         return "usermaster/signup";
                    }
-                if(profile_pic != null && !profile_pic.isEmpty()){
-                    user.setProfilePhoto(profile_pic.getBytes());
-                }
+//                if(profile_pic != null && !profile_pic.isEmpty()){
+//                    user.setProfilePhoto(profile_pic.getBytes());
+//                }
 
 
                 String otp =emailService.sendOtp(user.getEmail());
@@ -149,7 +149,7 @@ public class UserMasteController {
                 session.setAttribute("user", user);
                 model.addAttribute("user", user);
                 System.out.println("User is present and password matched.");
-                return "usermaster/dashboard";
+                return "usermaster/user_profile";
             } else {
                 model.addAttribute("error", "Invalid email or password.");
                 System.out.println("Password mismatch.");
@@ -382,45 +382,20 @@ public String resetPassword(Model model,
 
 
 
+//    for complete user profile
 
-//    @GetMapping("/resendOTP")
-////    @ResponseBody
-//    public String resendOTP(HttpSession session,Model model){
-//        try {
-//            UserMaster user = (UserMaster) session.getAttribute("user");
-//            String otp =emailService.sendOtp(user.getEmail());
-//            LocalTime currentTime =LocalTime.now();
-//            System.out.println("Current time is " + currentTime);
-//            //Add 10 minute more
-//            LocalTime tenMinutesLater = currentTime.plusMinutes(10);
+    @GetMapping("/getuserprofile")
+    public String getUserProfile(Model model  , HttpSession session){
+    UserMaster user = (UserMaster)session.getAttribute("user");
+//    model.addAttribute("userdata" , new UserMaster());
+    model.addAttribute("user" , user);
+    return "usermaster/user_profile";
+    }
+
+//    @PutMapping("/completeuserprofile")
+//    public String completeUserProfile(Model model , HttpSession session){
 //
-//            session.setAttribute("systemOTP" , otp);
-//            session.setAttribute("tenMinutesLater" , tenMinutesLater);
-//
-//            return "redirect:/savedata" ;
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
-//
+//    return "usermaster/update";
 //    }
-
-
-//    @PostMapping("/resetPassword")
-//    public String resetPassword(Model model , @RequestParam("otp") String otp,
-//                                HttpSession session){
-//        System.out.println("Inside reset password.");
-//         String getOtp =  (String) session.getAttribute("otp");
-//         LocalTime systemOtp = (LocalTime) session.getAttribute("systemTime");
-//         LocalTime time = (LocalTime) session.getAttribute("tenMinLater");
-//
-//         if(!systemOtp.equals(otp)){
-//             model.addAttribute("error" , "Invalid OTP.");
-//             return "usermaster/updatePassword";
-//         }
-//
-//        return "usermaster/login";
-//    }
-
-
 
 }
