@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -147,6 +147,8 @@
     </div>
 
     <form id="otpForm" method="post" th:action="@{/savedata}">
+        <p th:if="${message}" th:text="${message}" style="color:green;text-align:center;"></p>
+
         <div class="mb-3">
             <label for="otpInput" class="form-label">Enter OTP Code</label>
             <input
@@ -168,11 +170,33 @@
         </button>
 
         <p class="text-center mb-0">
-            Didn't receive the code? <a href="#" class="resend-link" id="resendLink">Resend OTP</a>
+            Didn't receive the code?
+            <a href="#" class="resend-link" id="resendLink">Resend OTP</a>
         </p>
+        <p id="otpMessage" style="color: green; text-align: center;"></p>
+
+        <!--        <p class="text-center mb-0">-->
+<!--            Didn't receive the code? <a th:href="@{/resendOTP}" class="resend-link" id="resendLink">Resend OTP</a>-->
+<!--        </p>-->
     </form>
 </div>
 
+
+
+<script>
+    document.getElementById("resendLink").addEventListener("click", function(e) {
+        e.preventDefault(); // prevent page reload
+
+        fetch("/resendOTP")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("otpMessage").textContent = data.message;
+            })
+            .catch(error => {
+                document.getElementById("otpMessage").textContent = "Something went wrong!";
+            });
+    });
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
 </body>
