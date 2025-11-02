@@ -5,10 +5,7 @@ import com.example.ProjectHON.Post_masterpackage.PostMaster;
 import com.example.ProjectHON.Rating_masterpackage.RatingMaster;
 import com.example.ProjectHON.Whisper_masterpackage.WhisperMaster;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -43,15 +40,7 @@ public class UserMaster{
     @Size(min = 4, max = 20, message = "Username must be 4–20 characters long")
     private String username;
 
-//    @Pattern(
-//            regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{6,15}$",
-//            message = "Password must be 6–15 characters long and include at least 1 letter and 1 number"
-//    )
-//@Size(min = 6, max = 15, message = "Password must be between 6 and 15 characters")
-//@Pattern(
-//        regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$",
-//        message = "Password must be 6–15 characters long and include at least 1 letter, 1 number, and 1 special character."
-//)
+
 // 🟩 Add a transient field for validation
 @Transient
 @Pattern(
@@ -72,21 +61,28 @@ private String password;
 
     private String gender;
 
+    @Column(name = "date_of_birth")
+    @Past(message = "Date of birth must be in the past")
     private LocalDate dateOfBirth;
 
-    private LocalDate joinDate;
+    @Column(name = "join_date")
+    private LocalDate joinDate = LocalDate.now();
 
     private String status; //Active, Inactive
 
+    @Column(name = "contact_no")
     @Pattern(
             regexp = "^[6-9]\\d{9}$",
             message = "Enter a valid 10-digit Indian mobile number"
     )
     private String contactNo;
 
+    @Column(name = "relationship_status")
     private String relationshipStatus; //Single, Married, Committed
 
+    @Size(max = 150, message = "Bio should not exceed 150 characters")
     private String bio;
+
 
     private String jiolocation;
 
