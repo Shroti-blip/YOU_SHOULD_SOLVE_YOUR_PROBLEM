@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 0;
+        }
+
+        .profile-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 10px 35px;
+            position: relative;
+            text-align: center;
+        }
+
+        .profile-pic-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            border-radius: 50%;
+            border: 5px solid white;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            background: #f8f9fa;
+        }
+
+        .profile-pic-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-pic-container .upload-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .profile-pic-container:hover .upload-overlay {
+            opacity: 1;
+        }
+
+        .profile-pic-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: 60px;
+            color: #6c757d;
+        }
+
+        .profile-body {
+            padding: 40px 30px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .input-group-text {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px 0 0 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 40px;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            border-radius: 10px;
+            padding: 12px 40px;
+            font-weight: 600;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .section-title {
+            color: #667eea;
+            font-weight: 700;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .profile-body {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="profile-container">
+    <div class="profile-card">
+
+        <div class="profile-body">
+            <h2 class="section-title"><i class="fas fa-user-circle"></i> Personal Information</h2>
+
+            <form id="profileForm" method="post" th:object="${user}" th:action="@{/completeProfile}"
+                                    enctype="multipart/form-data">
+
+<!--                profile pic changes start here -->
+                <div class="profile-header">
+                    <div class="profile-pic-container postion-relative text-center">
+
+                        <div class="profile-pic-placeholder">
+<!--                            showing user pic if available in db  -->
+                            <img th:if="${user.profilePhoto != null}"
+                                 th:src="@{/userphoto}"
+                                 alt="Profile Picture"
+                                 style="width:240px; height:240px; object-fit:cover"
+                                 class="rounded-circle border border-1  img-fluid">
+
+<!--                            default icon -->
+                            <i class="bi bi-person-circle text-primary"
+                                th:unless="${user.profilePhoto != null}"
+                                style="font-size:100px;"></i>
+                        </div>
+
+                        <div class="upload-overlay">
+                            <i class="fas fa-camera"></i> Change
+                        </div>
+
+<!--                        input for new upload (hidden)-->
+                        <input type="file" id="profilePicInput"  name="profilePhoto"
+                               accept="image/*" style="display: none;">
+                    </div>
+                </div>
+
+<!--                profile pic changes end here-->
+
+                <div class="row mb-3 pt-5">
+
+                    <input type="hidden" th:field="*{userId}">
+                    <div class="col-md-6 mb-3">
+                        <label for="fullName" class="form-label">
+                            <i class="fas fa-user"></i> Full Name
+                        </label>
+                        <input type="text" class="form-control" name="username"
+                               th:field="*{username}" id="fullName" placeholder="Enter your full name" required>
+                        <div class="text-danger" th:if="${#fields.hasErrors('username')}"
+                             th:errors="*{username}"></div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope"></i> Email Address
+                        </label>
+                        <input type="email" class="form-control" th:field="*{email}"
+                               name="email" id="email" placeholder="your.email@example.com" readonly>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+
+                    <div class="col-md-6 mb-3">
+                        <label for="contact" class="form-label">
+                            <i class="fas fa-phone"></i> Contact Number
+                        </label>
+                        <input type="tel" class="form-control" th:field="*{contactNo}"
+                               name="contactNo"  id="contact" placeholder="+91 XXXXX XXXXX" required>
+                        <div class="text-danger" th:if="${#fields.hasErrors('contactNo')}"
+                             th:errors="*{contactNo}"></div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3">
+                        <label for="dob" class="form-label">
+                            <i class="fas fa-calendar"></i> Date of Birth
+                        </label>
+                        <input type="date" class="form-control" th:field="*{dateOfBirth}"
+                               name="dateOfBirth" id="dob" required>
+                        <div class="text-danger" th:if="${#fields.hasErrors('dateOfBirth')}"
+                             th:errors="*{dateOfBirth}"></div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="gender" class="form-label">
+                            <i class="fas fa-venus-mars"></i> Gender
+                        </label>
+                        <select class="form-select" th:field="*{gender}" name="gender" id="gender" disabled>
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                            <option value="prefer-not-to-say">Prefer not to say</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="location" class="form-label">
+                        <i class="fas fa-map-marker-alt"></i> Location
+                    </label>
+                    <input type="text" class="form-control" th:field="*{jiolocation}"
+                           name="jiolocation" id="location" placeholder="City, Country" required>
+                    <div class="text-danger" th:if="${#fields.hasErrors('jiolocation')}"
+                         th:errors="*{jiolocation}"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="relationship" class="form-label">
+                        <i class="fas fa-heart"></i> Relationship Status(Optional)
+                    </label>
+                    <select class="form-select" th:field="*{relationshipStatus}"
+                            name="relationshipStatus" id="relationship">
+                        <option value="">Select Status</option>
+                        <option value="single">Single</option>
+                        <option value="in-relationship">In a Relationship</option>
+                        <option value="engaged">Engaged</option>
+                        <option value="married">Married</option>
+                        <option value="complicated">It's Complicated</option>
+                        <option value="prefer-not-to-say">Prefer not to say</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="bio" class="form-label">
+                        <i class="fas fa-pen"></i> Bio
+                    </label>
+                    <textarea class="form-control" th:field="*{bio}"
+                              name="bio" id="bio" rows="4" placeholder="Tell us about yourself..."></textarea>
+                    <div class="text-danger" th:if="${#fields.hasErrors('bio')}"
+                         th:errors="*{bio}"></div>
+                </div>
+
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-save"></i> Save Profile
+                    </button>
+                    <button type="reset" class="btn btn-secondary">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Profile picture upload
+    document.querySelector('.profile-pic-container').addEventListener('click', function() {
+        document.getElementById('profilePicInput').click();
+    });
+
+    document.getElementById('profilePicInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const placeholder = document.querySelector('.profile-pic-placeholder');
+                placeholder.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+<script>
+  const uploadOverlay = document.querySelector('.upload-overlay');
+  const fileInput = document.getElementById('profilePicInput');
+
+  uploadOverlay.addEventListener('click', () => {
+    fileInput.click();
+  });
+</script>
+
+</script>
+</body>
+</html>
