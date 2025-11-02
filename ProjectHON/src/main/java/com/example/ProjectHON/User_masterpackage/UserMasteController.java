@@ -6,10 +6,13 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,7 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Controller
-public class UserMasteController {
+public class UserMasterController {
     @Autowired
     UserMasterRepository userMasterRepository;
 
@@ -147,8 +150,12 @@ public class UserMasteController {
             //  Match raw password with encoded password in DB
             if (passwordEncoder.matches(password, user.getPassword())) {
                 session.setAttribute("user", user);
+                Long user_id = user.getUserId();
+                System.out.println("user Id is : ==="+ user_id);
+                session.setAttribute("user_id" , user_id);
                 model.addAttribute("user", user);
                 System.out.println("User is present and password matched.");
+                System.out.println(" date Of birth : " + user.getDateOfBirth());
                 return "usermaster/user_profile";
             } else {
                 model.addAttribute("error", "Invalid email or password.");
@@ -197,85 +204,6 @@ public class UserMasteController {
     }
 
 
-//    @PostMapping("/resetPassword")
-//    @Transactional
-//    public String resetPassword(Model model, @RequestParam("otp") String otp, HttpSession session,
-//                                @RequestParam("newPassword") String newPassword,
-//                                @RequestParam("confirmPassword") String confirmPassword) {
-//        System.out.println("Inside reset password.");
-//
-//
-//        String sessionOtp = (String) session.getAttribute("otp");
-//        String email = (String)session.getAttribute("email");
-//        LocalTime timeSent = (LocalTime) session.getAttribute("systemTime");
-//        LocalTime tenMinLater = (LocalTime) session.getAttribute("tenMinLater");
-//
-//        // basic null checks
-//        if (sessionOtp == null || tenMinLater == null || email == null) {
-//            model.addAttribute("error", "Session expired. Please request a new OTP.");
-//            return "usermaster/forgetPassword";
-//        }
-//
-//        // trim user input and session otp to avoid whitespace mismatch
-//        String userOtp = otp == null ? "" : otp.trim();
-//        String expectedOtp = sessionOtp.trim();
-//
-//        // check expiry
-//        if (LocalTime.now().isAfter(tenMinLater)) {
-//            model.addAttribute("error", "OTP has expired. Please request a new one.");
-//            session.invalidate();
-//            return "usermaster/forgetPassword";
-//        }
-//
-//        // compare OTPs
-//        if (!sessionOtp.equals(otp.trim())) {
-//            model.addAttribute("error", "Invalid OTP.");
-//            return "usermaster/updatePassword";
-//        }
-//
-//        if (!newPassword.equals(confirmPassword)) {
-//            model.addAttribute("error", "Passwords do not match.");
-//            return "usermaster/updatePassword";
-//        }
-//
-////        if (newPassword.length() < 6) {
-////            model.addAttribute("error", "Password must be at least 6 characters long.");
-////            return "usermaster/updatePassword";
-////        }
-//
-//        try{
-//            Optional<UserMaster> userOpt = userMasterRepository.findByEmail(email);
-//            System.out.println("Inside try and catch.");
-//            if(userOpt.isPresent()){
-//
-//                if (!newPassword.matches("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$")) {
-//                    model.addAttribute("error", "Password must be 6–15 characters long and include at least 1 letter, 1 number, and 1 special character.");
-//                    return "usermaster/updatePassword";
-//                }
-//
-//
-//
-//                //encrypt before saving.
-//                String encryptedPassword = passwordEncoder.encode(newPassword);
-//                System.out.println("=================Inside saving process=============.");
-//                UserMaster userMaster = userOpt.get();
-//                userMaster.setPassword(encryptedPassword);
-//                userMasterRepository.save(userMaster);
-//                System.out.println("================Inside try and catch save data===============");
-//                model.addAttribute("success", "Password reset successfully. Please login.");
-//                return "usermaster/login";
-//            }
-//            else {
-//                model.addAttribute("error", "User not found.");
-//                return "usermaster/forgetPassword";
-//            }
-//
-//        }catch (Exception e){
-//            model.addAttribute("error", "Error updating password: " + e.getMessage());
-//            return "usermaster/updatePassword";
-//        }
-//
-//    }
 @PostMapping("/resetPassword")
 @Transactional
 public String resetPassword(Model model,
@@ -384,18 +312,193 @@ public String resetPassword(Model model,
 
 //    for complete user profile
 
-    @GetMapping("/getuserprofile")
-    public String getUserProfile(Model model  , HttpSession session){
-    UserMaster user = (UserMaster)session.getAttribute("user");
-//    model.addAttribute("userdata" , new UserMaster());
-    model.addAttribute("user" , user);
-    return "usermaster/user_profile";
-    }
-
-//    @PutMapping("/completeuserprofile")
-//    public String completeUserProfile(Model model , HttpSession session){
-//
-//    return "usermaster/update";
+//    @GetMapping("/getuserprofile")
+//    public String getUserProfile(Model model  , HttpSession session){
+//    UserMaster user = (UserMaster)session.getAttribute("user");
+////    model.addAttribute("userdata" , new UserMaster());
+//    model.addAttribute("user" , user);
+//    return "usermaster/user_profile";
 //    }
 
+    @PostMapping("/completeProfile")
+    public String completeUserProfile(Model model , HttpSession session,
+                                      @Valid @ModelAttribute("user") UserMaster userMaster,
+                                      BindingResult bindingResult,
+                                      @RequestParam("profilePhoto") MultipartFile file){
+
+
+
+        //first get session user then fetch db user
+        UserMaster sessionUser  = (UserMaster) session.getAttribute("user");
+        System.out.println("value of email is : " + sessionUser .getEmail());
+        Optional<UserMaster> data = userMasterRepository.findByEmail(sessionUser.getEmail());
+
+
+        if(bindingResult.hasErrors()){
+            if(data.isPresent()){
+                userMaster.setProfilePhoto(data.get().getProfilePhoto());
+            }
+            model.addAttribute("user" , userMaster);
+            return  "usermaster/user_profile";
+        }
+        try{
+        if(data .isPresent()){
+            UserMaster user = data.get();
+            user.setUsername(userMaster.getUsername());
+            user.setEmail(userMaster.getEmail());
+            user.setContactNo(userMaster.getContactNo());
+            user.setBio(userMaster.getBio());
+            user.setDateOfBirth(userMaster.getDateOfBirth());
+            user.setRelationshipStatus(userMaster.getRelationshipStatus());
+            user.setJiolocation(userMaster.getJiolocation());
+            user.setGender(userMaster.getGender());
+             if(file != null && !file.isEmpty()){
+                 user.setProfilePhoto(file.getBytes());
+//                 System.out.println("====getting photos in byte=====");
+             }
+            //dont have to add joining date and password
+
+            System.out.println("===================Befor profile update===============");
+            userMasterRepository.save(user);
+            System.out.println("==========================prfile update done.==============================");
+        }
+        } catch (Exception e) {
+            System.out.println("===========Exception===========" + e.getMessage());
+        }
+
+     return "usermaster/login";
+    }
+
+
+//    for stopping binding profile manually , image is getting saved in db.
+//    or you can just change the name of profilePhoto in html and in requestparam
+@InitBinder
+public void initBinder(WebDataBinder binder) {
+    binder.setDisallowedFields("profilePhoto");
 }
+
+//    for showing profile image
+
+    @GetMapping("/userphoto")
+    public ResponseEntity<byte[]> userPhoto(Model model , HttpSession session){
+       Long userId = (Long) session.getAttribute("user_id");
+       UserMaster userMaster = userMasterRepository.findById(userId).orElse(null);
+
+       if(userMaster == null){
+           return ResponseEntity.notFound().build();
+       }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(userMaster.getProfilePhoto());
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//    @PostMapping("/resetPassword")
+//    @Transactional
+//    public String resetPassword(Model model, @RequestParam("otp") String otp, HttpSession session,
+//                                @RequestParam("newPassword") String newPassword,
+//                                @RequestParam("confirmPassword") String confirmPassword) {
+//        System.out.println("Inside reset password.");
+//
+//
+//        String sessionOtp = (String) session.getAttribute("otp");
+//        String email = (String)session.getAttribute("email");
+//        LocalTime timeSent = (LocalTime) session.getAttribute("systemTime");
+//        LocalTime tenMinLater = (LocalTime) session.getAttribute("tenMinLater");
+//
+//        // basic null checks
+//        if (sessionOtp == null || tenMinLater == null || email == null) {
+//            model.addAttribute("error", "Session expired. Please request a new OTP.");
+//            return "usermaster/forgetPassword";
+//        }
+//
+//        // trim user input and session otp to avoid whitespace mismatch
+//        String userOtp = otp == null ? "" : otp.trim();
+//        String expectedOtp = sessionOtp.trim();
+//
+//        // check expiry
+//        if (LocalTime.now().isAfter(tenMinLater)) {
+//            model.addAttribute("error", "OTP has expired. Please request a new one.");
+//            session.invalidate();
+//            return "usermaster/forgetPassword";
+//        }
+//
+//        // compare OTPs
+//        if (!sessionOtp.equals(otp.trim())) {
+//            model.addAttribute("error", "Invalid OTP.");
+//            return "usermaster/updatePassword";
+//        }
+//
+//        if (!newPassword.equals(confirmPassword)) {
+//            model.addAttribute("error", "Passwords do not match.");
+//            return "usermaster/updatePassword";
+//        }
+//
+////        if (newPassword.length() < 6) {
+////            model.addAttribute("error", "Password must be at least 6 characters long.");
+////            return "usermaster/updatePassword";
+////        }
+//
+//        try{
+//            Optional<UserMaster> userOpt = userMasterRepository.findByEmail(email);
+//            System.out.println("Inside try and catch.");
+//            if(userOpt.isPresent()){
+//
+//                if (!newPassword.matches("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$")) {
+//                    model.addAttribute("error", "Password must be 6–15 characters long and include at least 1 letter, 1 number, and 1 special character.");
+//                    return "usermaster/updatePassword";
+//                }
+//
+//
+//
+//                //encrypt before saving.
+//                String encryptedPassword = passwordEncoder.encode(newPassword);
+//                System.out.println("=================Inside saving process=============.");
+//                UserMaster userMaster = userOpt.get();
+//                userMaster.setPassword(encryptedPassword);
+//                userMasterRepository.save(userMaster);
+//                System.out.println("================Inside try and catch save data===============");
+//                model.addAttribute("success", "Password reset successfully. Please login.");
+//                return "usermaster/login";
+//            }
+//            else {
+//                model.addAttribute("error", "User not found.");
+//                return "usermaster/forgetPassword";
+//            }
+//
+//        }catch (Exception e){
+//            model.addAttribute("error", "Error updating password: " + e.getMessage());
+//            return "usermaster/updatePassword";
+//        }
+//
+//    }
