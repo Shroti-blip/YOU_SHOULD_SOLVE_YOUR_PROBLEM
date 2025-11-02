@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .main-container {
+        max-width: 935px;
+        margin: 0 auto;
+        padding: 30px 20px 80px;
+    }
+
+    .page-content {
+        display: none;
+    }
+
+    .page-content.active {
+        display: block;
+        animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Profile Header */
+    .profile-header {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-info {
+        display: flex;
+        align-items: center;
+        gap: 60px;
+        margin-bottom: 30px;
+    }
+
+    .profile-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        padding: 4px;
+    }
+
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid white;
+    }
+
+    .profile-details {
+        flex: 1;
+    }
+
+    .profile-username {
+        font-size: 28px;
+        font-weight: 300;
+        margin-bottom: 20px;
+    }
+
+    .profile-stats {
+        display: flex;
+        gap: 40px;
+        margin-bottom: 20px;
+    }
+
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .stat-number {
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    .stat-label {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .profile-bio {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .profile-description {
+        color: #666;
+    }
+
+    .edit-profile-btn {
+        padding: 8px 30px;
+        background: white;
+        border: 1px solid #dbdbdb;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .edit-profile-btn:hover {
+        background: #f8f8f8;
+    }
+
+    /* Cards, Sections, Grid, etc. */
+    .feed-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .rating-card-feed {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-header {
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .header-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .header-info {
+        flex: 1;
+    }
+
+    .header-username {
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .header-time {
+        color: #999;
+        font-size: 12px;
+    }
+
+    .card-image {
+        width: 100%;
+        aspect-ratio: 4/5;
+        object-fit: cover;
+    }
+
+    .card-rating {
+        padding: 20px;
+    }
+
+    .rating-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 50px;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    .rating-stars {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+
+    .star {
+        color: #ffd32a;
+        font-size: 20px;
+    }
+
+    .card-caption {
+        color: #666;
+        line-height: 1.5;
+        margin-top: 10px;
+    }
+
+    /* Scoreboard & Posts */
+    .posts-section {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        margin-bottom: 30px;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .section-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .scoreboard {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 20px;
+        padding: 30px;
+        color: white;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+    }
+
+    .score-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 15px;
+        margin-bottom: 12px;
+    }
+
+    .score-value {
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .posts-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+
+    .post-item {
+        position: relative;
+        padding-top: 100%;
+        border-radius: 15px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .post-item:hover {
+        transform: scale(1.05);
+    }
+
+    .post-item img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .post-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(102, 126, 234, 0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .post-item:hover .post-overlay {
+        opacity: 1;
+    }
+
+    .overlay-rating {
+        color: white;
+        font-size: 36px;
+        font-weight: 700;
+    }
+
+    /* Whisper Section */
+    .whisper-container {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .whisper-item {
+        display: flex;
+        gap: 15px;
+        padding: 20px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+
+    .whisper-item:hover {
+        background: #f8f8f8;
+    }
+
+    .whisper-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        flex-shrink: 0;
+    }
+
+    .whisper-unread {
+        width: 8px;
+        height: 8px;
+        background: #667eea;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 20px;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+    }
+
+    .nav-container {
+        max-width: 600px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-around;
+        padding: 15px 0;
+    }
+
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        text-decoration: none;
+        color: #666;
+        transition: color 0.2s;
+        padding: 5px 20px;
+        cursor: pointer;
+    }
+
+    .nav-item.active {
+        color: #667eea;
+    }
+
+    .nav-item:hover {
+        color: #667eea;
+    }
+
+    .nav-icon {
+        width: 24px;
+        height: 24px;
+        stroke-width: 2;
+    }
+
+    .nav-label {
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+        .profile-info {
+            flex-direction: column;
+            gap: 30px;
+            text-align: center;
+        }
+
+        .profile-stats {
+            justify-content: center;
+        }
+
+        .posts-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .posts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+
+    .rating-card {
+        background: white;
+        border-radius: 25px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .image-container {
+        position: relative;
+        width: 100%;
+        padding-top: 133%;
+        background: #f0f0f0;
+        overflow: hidden;
+    }
+
+    .image-container img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .rating-section {
+        padding: 30px;
+        position: relative;
+    }
+
+    .thermometer-container {
+        position: absolute;
+        right: 30px;
+        top: -80px;
+        bottom: 30px;
+        width: 60px;
+        z-index: 10;
+    }
+
+    .thermometer {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    .thermometer-fill {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, #ff4757, #ff6348, #ffa502, #ffd32a);
+        transition: height 0.3s ease;
+        border-radius: 0 0 30px 30px;
+    }
+
+    .thermometer-bulb {
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 50px;
+        background: white;
+        border-radius: 50%;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+    }
+
+    .thermometer-bulb-inner {
+        width: 35px;
+        height: 35px;
+        background: linear-gradient(135deg, #ff4757, #ff6348);
+        border-radius: 50%;
+        transition: background 0.3s ease;
+    }
+
+    .rating-display {
+        text-align: left;
+        margin-bottom: 20px;
+    }
+
+    .rating-number {
+        font-size: 48px;
+        font-weight: bold;
+        color: #ff4757;
+        line-height: 1;
+    }
+
+    .rating-label {
+        color: #666;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .username {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .timer-container {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(255, 71, 87, 0.95);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 18px;
+        box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+    }
+
+    .timer-container.warning {
+        background: rgba(255, 165, 2, 0.95);
+        animation: fastPulse 0.5s ease-in-out infinite;
+    }
+
+    @keyframes fastPulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.1);
+        }
+    }
+
+    .timer-container.expired {
+        background: rgba(128, 128, 128, 0.95);
+        animation: none;
+    }
+
+    .auto-submit-notice {
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+        padding: 15px;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 10px;
+        font-weight: 500;
+    }
+
+    .auto-submit-notice.submitted {
+        background: rgba(38, 222, 129, 0.2);
+        color: #20bf6b;
+        font-weight: 600;
+    }
+
+    .thermometer.disabled {
+        pointer-events: none;
+        opacity: 0.5;
+    }
+
+    .scale-markers {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        bottom: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #666;
+        font-weight: 600;
+    }
+
+    @media (max-width: 576px) {
+        .rating-section {
+            padding: 20px;
+        }
+
+        .thermometer-container {
+            right: 20px;
+            width: 50px;
+            top: -60px;
+        }
+
+        .rating-number {
+            font-size: 36px;
+        }
+    }
+  </style>
+</head>
+
+<body>
+<div class="main-container">
+  <!-- HOME PAGE -->
+  <div class="page-content active" id="homePage">
+    <div class="rating-card">
+      <div class="image-container">
+        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800" alt="Profile Picture"
+             id="profileImage">
+        <div class="timer-container" id="timerContainer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span id="timerDisplay">10s</span>
+        </div>
+      </div>
+
+      <div class="rating-section">
+        <div class="thermometer-container">
+          <div class="thermometer" id="thermometer">
+            <div class="scale-markers">
+              <div>10</div>
+              <div>8</div>
+              <div>6</div>
+              <div>4</div>
+              <div>2</div>
+            </div>
+            <div class="thermometer-fill" id="thermometerFill"></div>
+            <div class="thermometer-bulb">
+              <div class="thermometer-bulb-inner" id="bulbInner"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rating-display">
+          <div class="rating-number" id="ratingNumber">6</div>
+          <div class="rating-label">RATE THIS PERSON</div>
+        </div>
+
+        <div class="user-info">
+          <div class="avatar"></div>
+          <div class="username">Member</div>
+        </div>
+
+        <div class="auto-submit-notice" id="autoSubmitNotice">
+          Rating will auto-submit when timer ends
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY RATING PAGE -->
+  <div class="page-content" id="myRatingPage">
+    <div class="scoreboard">
+      <div class="scoreboard-title">📊 My Rating Statistics</div>
+      <div class="score-item">
+        <span class="score-label">Total Ratings Received</span>
+        <span class="score-value">234</span>
+      </div>
+      <div class="score-item">
+        <span class="score-label">Average Rating</span>
+        <span class="score-value">8.5</span>
+      </div>
+      <div class="score-item">
+        <span class="score-label">Highest Rating</span>
+        <span class="score-value">10</span>
+      </div>
+      <div class="score-item">
+        <span class="score-label">Total Posts</span>
+        <span class="score-value">12</span>
+      </div>
+    </div>
+
+    <div class="posts-section">
+      <div class="section-header">
+        <div class="section-title">My Rated Photos</div>
+      </div>
+      <div class="posts-grid" id="postsGrid">
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">9.0</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">8.5</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">9.8</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">7.5</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">8.8</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1496440737103-cd596325d314?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">8.2</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHISPER PAGE -->
+  <div class="page-content" id="whisperPage">
+    <div class="whisper-container">
+      <div class="section-header">
+        <div class="section-title">💬 Whispers</div>
+      </div>
+      <div class="whisper-item">
+        <div class="whisper-avatar"></div>
+        <div class="whisper-content">
+          <div class="whisper-header">
+            <span class="whisper-username">sarah_miller</span>
+            <span class="whisper-time">2m ago</span>
+          </div>
+          <div class="whisper-message">Hey! Just wanted to say you look amazing in that photo! 😍</div>
+        </div>
+        <div class="whisper-unread"></div>
+      </div>
+      <div class="whisper-item">
+        <div class="whisper-avatar"></div>
+        <div class="whisper-content">
+          <div class="whisper-header">
+            <span class="whisper-username">alex_jones</span>
+            <span class="whisper-time">1h ago</span>
+          </div>
+          <div class="whisper-message">Your rating game is strong! Keep it up! 💪</div>
+        </div>
+      </div>
+      <div class="whisper-item">
+        <div class="whisper-avatar"></div>
+        <div class="whisper-content">
+          <div class="whisper-header">
+            <span class="whisper-username">emma_wilson</span>
+            <span class="whisper-time">3h ago</span>
+          </div>
+          <div class="whisper-message">Thanks for the rating! Really appreciate it! ⭐</div>
+        </div>
+      </div>
+      <div class="whisper-item">
+        <div class="whisper-avatar"></div>
+        <div class="whisper-content">
+          <div class="whisper-header">
+            <span class="whisper-username">mike_brown</span>
+            <span class="whisper-time">5h ago</span>
+          </div>
+          <div class="whisper-message">Can we connect? I'd love to chat more!</div>
+        </div>
+      </div>
+      <div class="whisper-item">
+        <div class="whisper-avatar"></div>
+        <div class="whisper-content">
+          <div class="whisper-header">
+            <span class="whisper-username">lisa_davis</span>
+            <span class="whisper-time">1d ago</span>
+          </div>
+          <div class="whisper-message">Your profile is so inspiring! Keep posting! 🌟</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div class="page-content" id="profilePage">
+    <div class="profile-header">
+      <div class="profile-info">
+        <div class="profile-avatar">
+          <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400" alt="Profile">
+        </div>
+        <div class="profile-details">
+          <div class="profile-username">username</div>
+          <div class="profile-stats">
+            <div class="stat-item">
+              <div class="stat-number">12</div>
+              <div class="stat-label">Posts</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">8.5</div>
+              <div class="stat-label">Avg Rating</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">234</div>
+              <div class="stat-label">Ratings</div>
+            </div>
+          </div>
+          <button class="edit-profile-btn">Edit Profile</button>
+        </div>
+      </div>
+      <div class="profile-bio">Your Name</div>
+      <div class="profile-description">Living life one rating at a time ✨<br>📍 New York, USA<br>✉
+        contact@example.com</div>
+    </div>
+
+    <div class="posts-section">
+      <div class="section-header">
+        <div class="section-title">My Posts</div>
+      </div>
+      <div class="posts-grid">
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">9.0</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">8.5</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">9.8</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">7.5</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">8.8</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+        <div class="post-item">
+          <img src="https://images.unsplash.com/photo-1496440737103-cd596325d314?w=400" alt="Post">
+          <div class="post-overlay">
+            <div class="overlay-rating">8.2</div>
+            <div class="overlay-label">Average Rating</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav">
+  <div class="nav-container">
+    <div class="nav-item active" data-page="home">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span class="nav-label">Home</span>
+    </div>
+    <div class="nav-item" data-page="myrating">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </svg>
+      <span class="nav-label">My Rating</span>
+    </div>
+    <div class="nav-item" data-page="whisper">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span class="nav-label">Whisper</span>
+    </div>
+    <div class="nav-item" data-page="profile">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+      <span class="nav-label">Profile</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Navigation logic
+  document.addEventListener('DOMContentLoaded', () => {
+      const navItems = document.querySelectorAll('.nav-item');
+      const pages = {
+          home: document.getElementById('homePage'),
+          myrating: document.getElementById('myRatingPage'),
+          whisper: document.getElementById('whisperPage'),
+          profile: document.getElementById('profilePage')
+      };
+
+      navItems.forEach(item => {
+          item.addEventListener('click', () => {
+              // Remove active classes
+              navItems.forEach(i => i.classList.remove('active'));
+              Object.values(pages).forEach(p => p.classList.remove('active'));
+
+              // Add active to selected
+              item.classList.add('active');
+              const pageId = item.getAttribute('data-page');
+              pages[pageId]?.classList.add('active');
+          });
+      });
+  });
+</script>
+<script>
+  const thermometer = document.getElementById('thermometer');
+  const thermometerFill = document.getElementById('thermometerFill');
+  const ratingNumber = document.getElementById('ratingNumber');
+  const bulbInner = document.getElementById('bulbInner');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const timerContainer = document.getElementById('timerContainer');
+  const autoSubmitNotice = document.getElementById('autoSubmitNotice');
+
+  let currentRating = 6;
+  let timeRemaining = 10;
+  let timerInterval = null;
+  let canRate = true;
+
+  function updateThermometer(rating) {
+      if (!canRate) return;
+
+      currentRating = rating;
+      const percentage = (rating / 10) * 100;
+      thermometerFill.style.height = percentage + '%';
+      ratingNumber.textContent = rating;
+
+      // Change color based on rating
+      const colors = [
+          'linear-gradient(135deg, #ff4757, #ff6348)',
+          'linear-gradient(135deg, #ffa502, #ffd32a)',
+          'linear-gradient(135deg, #26de81, #20bf6b)'
+      ];
+
+      if (rating <= 3) {
+          bulbInner.style.background = colors[0];
+      } else if (rating <= 7) {
+          bulbInner.style.background = colors[1];
+      } else {
+          bulbInner.style.background = colors[2];
+      }
+  }
+
+  function handleThermometerClick(e) {
+      if (!canRate) return;
+
+      const rect = thermometer.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const bulbHeight = 40;
+      const usableHeight = rect.height - bulbHeight;
+      const clickPosition = Math.max(0, Math.min(usableHeight, usableHeight - y));
+      const rating = Math.round((clickPosition / usableHeight) * 10);
+      updateThermometer(Math.max(1, Math.min(10, rating)));
+  }
+
+  function startTimer() {
+      timerInterval = setInterval(() => {
+          timeRemaining--;
+          timerDisplay.textContent = timeRemaining + 's';
+
+          if (timeRemaining <= 3) {
+              timerContainer.classList.add('warning');
+          }
+
+          if (timeRemaining <= 0) {
+              clearInterval(timerInterval);
+              disableRating();
+          }
+      }, 1000);
+  }
+
+  function disableRating() {
+      canRate = false;
+      thermometer.classList.add('disabled');
+      timerContainer.classList.remove('warning');
+      timerContainer.classList.add('expired');
+      timerDisplay.textContent = '0s';
+
+      // Auto-submit the rating
+      autoSubmitNotice.textContent = ✓ Rating ${currentRating}/10 submitted successfully!;
+      autoSubmitNotice.classList.add('submitted');
+
+      // Here you would send the rating to your backend
+      console.log('Auto-submitted rating:', currentRating);
+
+      // Optional: Show success message
+      setTimeout(() => {
+          alert(Rating ${currentRating}/10 has been submitted!);
+      }, 100);
+  }
+
+  thermometer.addEventListener('click', handleThermometerClick);
+
+  thermometer.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      handleThermometerClick(e.touches[0]);
+  });
+
+  // Initialize
+  updateThermometer(6);
+  startTimer();
+</script>
+</body>
+
+</html>
