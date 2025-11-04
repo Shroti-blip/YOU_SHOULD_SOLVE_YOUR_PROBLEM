@@ -46,7 +46,7 @@ public class SecurityConfig {
         // Configuration
         // urls ko configure kiya hai ki kon se public rahenge or kon se private rahenge.
         httpSecurity.authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/login", "/register","/css/", "/js/","Images/","/check-email").permitAll()
+                .requestMatchers("/login", "/register","/css/", "/js/","Images/","/check-email" ,"/check-username","/getotp" ,"/savedata").permitAll()
                 .requestMatchers("/user/").hasAnyRole("USER","ADMIN")
                  .requestMatchers("/admin/").hasRole("ADMIN")
                 .anyRequest().authenticated()
