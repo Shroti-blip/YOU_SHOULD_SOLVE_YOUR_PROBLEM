@@ -39,89 +39,97 @@ public class UserMasterController {
     PasswordEncoder passwordEncoder;
 
     @GetMapping("/register")
-    public String getPage(Model model){
-        model.addAttribute("user" , new UserMaster());
+    public String getPage(Model model) {
+        model.addAttribute("user", new UserMaster());
         return "usermaster/signup";
     }
 
-//      @RequestParam("photo") MultipartFile profile_pic,
+    //      @RequestParam("photo") MultipartFile profile_pic,
     @PostMapping("/getotp")
     public String saveInfo(@Valid @ModelAttribute("user") UserMaster user,
                            BindingResult bindingResult,
                            Model model,
-                           HttpSession session){
-        if(bindingResult.hasErrors()){
+                           HttpSession session) {
+
+        System.out.println("=============Inside getOtp mapping .==============");
+
+        if (bindingResult.hasErrors()) {
             return "usermaster/signup";
-        }
-        else{
+        } else {
             //check age of user
-            if(user.getDateOfBirth() != null){
-                int age = Period.between(user.getDateOfBirth() , LocalDate.now()).getYears();
-                if(age < 18){
-                    model.addAttribute("errorMessage" , "You must be at least 18 years old to register.");
+//            if (user.getDateOfBirth() != null) {
+//                int age = Period.between(user.getDateOfBirth(), LocalDate.now()).getYears();
+//                if (age < 18) {
+//                    model.addAttribute("errorMessage", "You must be at least 18 years old to register.");
+//                    return "usermaster/signup";
+//                }
+//            }
+            try {
+
+                if (userMasterRepository.findByEmail(user.getEmail()).isPresent()) {
+                    model.addAttribute("error", "Email address already exists");
                     return "usermaster/signup";
                 }
-            }
-               try{
-
-                   if(userMasterRepository.findByEmail(user.getEmail()).isPresent()){
-                       model.addAttribute("error", "Email address already exists");
-                        return "usermaster/signup";
-                   }
 //                if(profile_pic != null && !profile_pic.isEmpty()){
 //                    user.setProfilePhoto(profile_pic.getBytes());
 //                }
 
 
-                String otp =emailService.sendOtp(user.getEmail());
-                LocalTime currentTime =LocalTime.now();
+                String otp = emailService.sendOtp(user.getEmail());
+                LocalTime currentTime = LocalTime.now();
                 System.out.println("Current time is " + currentTime);
                 //Add 10 minute more
                 LocalTime tenMinutesLater = currentTime.plusMinutes(10);
 
-                   session.setAttribute("user" , user);
-                   session.setAttribute("systemOTP" , otp);
-                   session.setAttribute("tenMinutesLater" , tenMinutesLater);
+                session.setAttribute("user", user);
+                session.setAttribute("systemOTP", otp);
+                session.setAttribute("tenMinutesLater", tenMinutesLater);
 
+                System.out.println("=============Inside try and catch gor getotp==============");
 
-            }catch (Exception e){
-                System.out.println("here is problem.");
+            } catch (Exception e) {
+                System.out.println("here is problem." +e.getMessage());
             }
         }
+
+        System.out.println("=============Before return statement.==============");
+
         return "usermaster/getotp";
     }
 
     @PostMapping("/savedata")
-    public String saveData(Model model , HttpSession session ,
-                           @RequestParam("userOtp") int userOtp){
-        try{
+    public String saveData(Model model, HttpSession session,
+                           @RequestParam("userOtp") int userOtp) {
+        try {
             System.out.println("====================Save Data process=====================");
-            UserMaster user = (UserMaster)session.getAttribute("user");
-            String systemOTP = (String)session.getAttribute("systemOTP");
-            LocalTime tenMinutesLater = (LocalTime)session.getAttribute("tenMinutesLater");
+            UserMaster user = (UserMaster) session.getAttribute("user");
+            String systemOTP = (String) session.getAttribute("systemOTP");
+            LocalTime tenMinutesLater = (LocalTime) session.getAttribute("tenMinutesLater");
 
             LocalTime currentTime = LocalTime.now();
 
             //check if otp is not equal to system one or not.
-            if(!systemOTP.equals(String.valueOf(userOtp))){
-            model.addAttribute("user" , user);
-            model.addAttribute("error" , "Invalid Otp");
+            if (!systemOTP.equals(String.valueOf(userOtp))) {
+                model.addAttribute("user", user);
+                model.addAttribute("error", "Invalid Otp");
                 System.out.println("=============Invalid otp thing==================");
-            return "usermaster/getotp";
+                return "usermaster/getotp";
             }
 
             //check if time expires
-            if(currentTime.isAfter((tenMinutesLater))){
-                model.addAttribute("user" , user);
-                model.addAttribute("error" , "OTP expired. Request a new one.");
+            if (currentTime.isAfter((tenMinutesLater))) {
+                model.addAttribute("user", user);
+                model.addAttribute("error", "OTP expired. Request a new one.");
                 System.out.println("Inside 10 min. one.");
                 return "usermaster/getotp";
             }
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+//            password problem while registration.
+            user.setPassword(passwordEncoder.encode(user.getRawPassword()));
+            user.getRoleList().add("ROLE_USER");
             userMasterRepository.save(user);
             System.out.println("Successful Registration.");
             emailService.sendAfterRegistration(user.getEmail());
-        }catch (Exception e){
+        } catch (Exception e) {
             model.addAttribute("error", "Error processing files: " + e.getMessage());
             System.out.println("Exception is here in save data " + e);
         }
@@ -130,44 +138,42 @@ public class UserMasterController {
     }
 
     @GetMapping("/login")
-    public String getLoginPage(){
+    public String getLoginPage() {
+        return "usermaster/login";
+    }
+
+    @GetMapping("/logout")
+    public String getLogout() {
         return "usermaster/login";
     }
 
 
-    @PostMapping("/getloggedin")
-    public String getLogin(Model model, HttpSession session,
-                           @RequestParam("email") String email,
-                           @RequestParam("password") String password) {
+    //Login code
+
+    @GetMapping("/user/profile")
+    public String getLogin(Model model, HttpSession session) {
 
         System.out.println("Inside login mapping");
 
-        Optional<UserMaster> optional = userMasterRepository.findByEmail(email);
+        Long userId = (Long) session.getAttribute("userId");
 
-        if (optional.isPresent()) {
-            UserMaster user = optional.get();
+        Optional<UserMaster> userMaster = userMasterRepository.findById(userId);
 
-            //  Match raw password with encoded password in DB
-            if (passwordEncoder.matches(password, user.getPassword())) {
-                session.setAttribute("user", user);
-                Long user_id = user.getUserId();
-                System.out.println("user Id is : ==="+ user_id);
-                session.setAttribute("user_id" , user_id);
-                model.addAttribute("user", user);
-                System.out.println("User is present and password matched.");
-                System.out.println(" date Of birth : " + user.getDateOfBirth());
-                return "usermaster/user_profile";
-            } else {
-                model.addAttribute("error", "Invalid email or password.");
-                System.out.println("Password mismatch.");
-                return "usermaster/login";
-            }
+        if(userMaster.isPresent()) {
+            UserMaster user = userMaster.get();
+            Long user_id = user.getUserId();
+            session.setAttribute("user_id", user_id);
+            session.setAttribute("user" , user);
+            model.addAttribute("user", user);
+            model.addAttribute("msg" , "User is Registered.");
+            return "usermaster/user_profile";
         }
-
-        System.out.println("User does not exist.");
-        model.addAttribute("error", "Invalid email or password.");
+        model.addAttribute("error", "user not found!");
         return "usermaster/login";
+
     }
+
+
 
 
 
@@ -203,39 +209,48 @@ public class UserMasterController {
 
     }
 
+    @GetMapping("/check-otp/{otp}")
+    @ResponseBody
+    public ResponseEntity<Map<String , Boolean>> checkOtp( @PathVariable("otp") String otp,
+                                                           Model model , HttpSession session){
+
+        String sessionOtp = (String) session.getAttribute("otp");
+        String email = (String) session.getAttribute("email");
+        LocalTime tenMinLater = (LocalTime) session.getAttribute("tenMinLater");
+
+        Map<String , Boolean> response = new HashMap<>();
+
+        //  Check OTP expiry
+        if (LocalTime.now().isAfter(tenMinLater)) {
+            model.addAttribute("error", "OTP has expired. Please request a new one.");
+            session.invalidate();
+            response.put("expiredOtp", true);
+        }
+
+        //  Compare OTPs
+        if (!sessionOtp.trim().equals(otp.trim())) {
+            model.addAttribute("error", "Invalid OTP.");
+            response.put("invalidOtp" , true);
+        }
+
+
+        return ResponseEntity.ok(response);
+    }
+
 
 @PostMapping("/resetPassword")
 @Transactional
 public String resetPassword(Model model,
-                            @RequestParam("otp") String otp,
                             HttpSession session,
                             @RequestParam("newPassword") String newPassword,
                             @RequestParam("confirmPassword") String confirmPassword) {
 
     System.out.println("Inside reset password.");
 
-    String sessionOtp = (String) session.getAttribute("otp");
+
     String email = (String) session.getAttribute("email");
-    LocalTime tenMinLater = (LocalTime) session.getAttribute("tenMinLater");
 
-    //  Basic null checks
-    if (sessionOtp == null || tenMinLater == null || email == null) {
-        model.addAttribute("error", "Session expired. Please request a new OTP.");
-        return "usermaster/forgetPassword";
-    }
 
-    //  Check OTP expiry
-    if (LocalTime.now().isAfter(tenMinLater)) {
-        model.addAttribute("error", "OTP has expired. Please request a new one.");
-        session.invalidate();
-        return "usermaster/forgetPassword";
-    }
-
-    //  Compare OTPs
-    if (!sessionOtp.trim().equals(otp.trim())) {
-        model.addAttribute("error", "Invalid OTP.");
-        return "usermaster/updatePassword";
-    }
 
     //  Match both passwords
     if (!newPassword.equals(confirmPassword)) {
@@ -330,8 +345,10 @@ public String resetPassword(Model model,
 
         //first get session user then fetch db user
         UserMaster sessionUser  = (UserMaster) session.getAttribute("user");
+
         System.out.println("value of email is : " + sessionUser .getEmail());
         Optional<UserMaster> data = userMasterRepository.findByEmail(sessionUser.getEmail());
+//        Optional<UserMaster> data = (Optional)userMasterRepository.findByUsername(sessionUser.getUsername());
 
 
         if(bindingResult.hasErrors()){
@@ -393,6 +410,26 @@ public void initBinder(WebDataBinder binder) {
                 .body(userMaster.getProfilePhoto());
     }
 
+
+//    for email check onkeyup
+
+    @GetMapping("/check-email")
+    @ResponseBody
+    public  ResponseEntity<Map<String , Boolean>> checkEmailExists(@RequestParam String email){
+        boolean exists = userMasterRepository.findByEmail(email).isPresent();
+        Map<String , Boolean> response= new HashMap<>();
+        response.put("exists" , exists);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/check-username")
+    @ResponseBody
+    public ResponseEntity<Map<String , Boolean>> checkUserName(@RequestParam("username") String username){
+      boolean exists =   userMasterRepository.findByUsername(username).isPresent();
+      Map<String , Boolean> response = new HashMap<>();
+      response.put("exists" , exists);
+      return ResponseEntity.ok(response);
+    }
 
 }
 
@@ -502,3 +539,15 @@ public void initBinder(WebDataBinder binder) {
 //        }
 //
 //    }
+
+
+
+
+
+
+
+
+//Role userRole = roleRepository.findByName("ROLE_USER")
+//        .orElseGet(() -> roleRepository.save(new Role("ROLE_USER")));
+//
+//user.setRoles(Set.of(userRole));
