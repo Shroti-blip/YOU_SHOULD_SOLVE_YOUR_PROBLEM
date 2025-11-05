@@ -50,15 +50,30 @@ public class OAuthAuthenticationSuccessHandler implements AuthenticationSuccessH
        String email =  user.getAttribute("email").toString();
         String name = user.getAttribute("name").toString();
         String picture = user.getAttribute("picture").toString();
+        String firstName = name.split(" ")[0];
+
+
+
+        String baseUsername = firstName.toLowerCase() + "_g"; // => "muskan_g"
+        String username = baseUsername;
+
+// 
+        int counter = 1;
+        while (userMasterRepository.findByUsername(username).isPresent()) {
+            username = baseUsername + counter; // "muskan_g1"
+            counter++;
+        }
 
         //creating a new obj of Usermaster.
 
         UserMaster userMaster = new UserMaster();
-        userMaster.setUsername(name);
+//        userMaster.setFullName(name);
+        userMaster.setUsername(baseUsername);
         userMaster.setEmail(email);
         userMaster.setProfilePhoto(picture.getBytes());
 //        userMaster.setUserId(UUID.randomUUID().node());
         userMaster.setRoleList(List.of("ROLE_USER"));
+        userMaster.setLoginProvider("GOOGLE");
 
         HttpSession session=request.getSession();
        UserMaster userMaster1 = userMasterRepository.findByEmail(email).orElse(null);
