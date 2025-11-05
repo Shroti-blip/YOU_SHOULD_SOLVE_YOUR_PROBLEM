@@ -158,7 +158,7 @@
 
 <!--                profile pic changes start here -->
                 <div class="profile-header">
-                    <div class="profile-pic-container postion-relative text-center">
+                    <div class="profile-pic-container position-relative text-center">
 
                         <div class="profile-pic-placeholder">
 <!--                            showing user pic if available in db  -->
@@ -176,11 +176,12 @@
 
                         <div class="upload-overlay">
                             <i class="fas fa-camera"></i> Change
+                            <input type="file" id="profilePicInput"  name="profilePhoto"
+                                   accept="image/*" style="display: none;">
                         </div>
 
 <!--                        input for new upload (hidden)-->
-                        <input type="file" id="profilePicInput"  name="profilePhoto"
-                               accept="image/*" style="display: none;">
+
                     </div>
                 </div>
 
@@ -194,9 +195,9 @@
                             <i class="fas fa-user"></i> Full Name
                         </label>
                         <input type="text" class="form-control" name="username"
-                               th:field="*{username}" id="fullName" placeholder="Enter your full name" required>
-                        <div class="text-danger" th:if="${#fields.hasErrors('username')}"
-                             th:errors="*{username}"></div>
+                               th:field="*{fullName}" id="fullName" placeholder="Enter your full name" >
+                        <div class="text-danger" th:if="${#fields.hasErrors('fullName')}"
+                             th:errors="*{fullName}"></div>
                     </div>
 
                     <div class="col-md-6 mb-3">
@@ -211,14 +212,25 @@
                 <div class="row mb-3">
 
                     <div class="col-md-6 mb-3">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user"></i> Username
+                        </label>
+                        <input type="text" class="form-control" name="username"
+                               th:field="*{username}" id="username"  required>
+                        <div class="text-danger" th:if="${#fields.hasErrors('username')}"
+                             th:errors="*{username}"></div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
                         <label for="contact" class="form-label">
                             <i class="fas fa-phone"></i> Contact Number
                         </label>
                         <input type="tel" class="form-control" th:field="*{contactNo}"
-                               name="contactNo"  id="contact" placeholder="+91 XXXXX XXXXX" required>
+                               name="contactNo"  id="contact" placeholder="+91 XXXXX XXXXX" >
                         <div class="text-danger" th:if="${#fields.hasErrors('contactNo')}"
                              th:errors="*{contactNo}"></div>
                     </div>
+
                 </div>
 
                 <div class="row mb-3">
@@ -226,8 +238,8 @@
                         <label for="dob" class="form-label">
                             <i class="fas fa-calendar"></i> Date of Birth
                         </label>
-                        <input type="date" class="form-control" th:field="*{dateOfBirth}"
-                               name="dateOfBirth" id="dob" required>
+                        <input type="date" class="form-control" th:text="${#temporals.format(user.dateOfBirth, 'dd MMMM yyyy')}"
+                               name="dateOfBirth" id="dob" >
                         <div class="text-danger" th:if="${#fields.hasErrors('dateOfBirth')}"
                              th:errors="*{dateOfBirth}"></div>
                     </div>
@@ -236,13 +248,15 @@
                         <label for="gender" class="form-label">
                             <i class="fas fa-venus-mars"></i> Gender
                         </label>
-                        <select class="form-select" th:field="*{gender}" name="gender" id="gender" disabled>
-                            <option value="">Select Gender</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                            <option value="prefer-not-to-say">Prefer not to say</option>
-                        </select>
+                        <input type="text" class="form-control" th:field="*{gender}"
+                               name="gender" id="gender" readonly>
+<!--                        <select class="form-select"  name="gender" id="gender" disabled>-->
+<!--                            <option value="" th:field="*{gender}">Select Gender</option>-->
+<!--                            <option value="male">Male</option>-->
+<!--                            <option value="female">Female</option>-->
+<!--                            <option value="other">Other</option>-->
+<!--                            <option value="prefer-not-to-say">Prefer not to say</option>-->
+<!--                        </select>-->
                     </div>
                 </div>
 
@@ -251,14 +265,14 @@
                         <i class="fas fa-map-marker-alt"></i> Location
                     </label>
                     <input type="text" class="form-control" th:field="*{jiolocation}"
-                           name="jiolocation" id="location" placeholder="City, Country" required>
+                           name="jiolocation" id="location" placeholder="City, Country" >
                     <div class="text-danger" th:if="${#fields.hasErrors('jiolocation')}"
                          th:errors="*{jiolocation}"></div>
                 </div>
 
                 <div class="mb-3">
                     <label for="relationship" class="form-label">
-                        <i class="fas fa-heart"></i> Relationship Status(Optional)
+                        <i class="fas fa-heart"></i> Relationship Status
                     </label>
                     <select class="form-select" th:field="*{relationshipStatus}"
                             name="relationshipStatus" id="relationship">
@@ -315,7 +329,7 @@
         }
     });
 
-<script>
+
   const uploadOverlay = document.querySelector('.upload-overlay');
   const fileInput = document.getElementById('profilePicInput');
 
