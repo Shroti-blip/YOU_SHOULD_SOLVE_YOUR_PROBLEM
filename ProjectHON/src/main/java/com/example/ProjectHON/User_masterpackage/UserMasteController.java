@@ -162,6 +162,7 @@ public class UserMasterController {
         if(userMaster.isPresent()) {
             UserMaster user = userMaster.get();
             Long user_id = user.getUserId();
+
             session.setAttribute("user_id", user_id);
             session.setAttribute("user" , user);
             model.addAttribute("user", user);
@@ -369,6 +370,8 @@ public String resetPassword(Model model,
             user.setRelationshipStatus(userMaster.getRelationshipStatus());
             user.setJiolocation(userMaster.getJiolocation());
             user.setGender(userMaster.getGender());
+            user.setFullName(userMaster.getFullName());
+            System.out.println("==========Username is========= : " + userMaster.getFullName());
              if(file != null && !file.isEmpty()){
                  user.setProfilePhoto(file.getBytes());
 //                 System.out.println("====getting photos in byte=====");
@@ -430,6 +433,9 @@ public void initBinder(WebDataBinder binder) {
       response.put("exists" , exists);
       return ResponseEntity.ok(response);
     }
+
+
+
 
 }
 
