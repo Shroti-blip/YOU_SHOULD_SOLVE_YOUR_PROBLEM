@@ -49,10 +49,21 @@ public class UserMaster implements UserDetails {
 
 //    @NotBlank(message = "Username is required")
     @Size(min = 4, max = 20, message = "Username must be 4–20 characters long")
+    @Pattern(regexp = "^[^\\s]+$", message = "Username cannot contain spaces")
     private String username;
 
+    @Column(name="fullname")
+    private String fullName;
 
-// 🟩 Add a transient field for validation
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    // 🟩 Add a transient field for validation
 @Transient
 @Pattern(
         regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$",
@@ -69,7 +80,7 @@ private String password;
     @Email(message = "Please enter a valid email address")
     private String email;
 
-    private double points;
+    private double points = 0;
 
     @Column(name = "profile_photo")
     private byte[] profilePhoto;
@@ -85,11 +96,11 @@ private String password;
 
     private Boolean status = true; //Active, Inactive
 
-    @Column(name = "contact_no")
     @Pattern(
-            regexp = "^[6-9]\\d{9}$",
+            regexp = "^$|^[6-9]\\d{9}$",
             message = "Enter a valid 10-digit Indian mobile number"
     )
+    @Column(name = "contact_no")
     private String contactNo;
 
     @Column(name = "relationship_status")
@@ -100,6 +111,8 @@ private String password;
 
 
     private String jiolocation;
+
+    private String loginProvider = "DEFAULT";
 
 
     @ElementCollection(fetch = FetchType.EAGER)
@@ -122,7 +135,8 @@ private String password;
     public UserMaster() {
     }
 
-    public UserMaster(Long userId, List<BadgeMaster> badge, List<PostMaster> post, List<RatingMaster> userFrom, List<RatingMaster> userTo, List<WhisperMaster> sentWhispers, List<WhisperMaster> receivedWhispers, String username, String password, String email, double points, byte[] profilePhoto, String gender, LocalDate dateOfBirth, LocalDate joinDate, Boolean status, String contactNo, String relationshipStatus, String bio, String jiolocation) {
+
+    public UserMaster(Long userId, List<BadgeMaster> badge, List<PostMaster> post, List<RatingMaster> userFrom, List<RatingMaster> userTo, List<WhisperMaster> sentWhispers, List<WhisperMaster> receivedWhispers, String username, String fullName, String rawPassword, String password, String email, double points, byte[] profilePhoto, String gender, LocalDate dateOfBirth, LocalDate joinDate, Boolean status, String contactNo, String relationshipStatus, String bio, String jiolocation, String loginProvider, List<String> roleList) {
         this.userId = userId;
         this.badge = badge;
         this.post = post;
@@ -131,6 +145,8 @@ private String password;
         this.sentWhispers = sentWhispers;
         this.receivedWhispers = receivedWhispers;
         this.username = username;
+        fullName = fullName;
+        this.rawPassword = rawPassword;
         this.password = password;
         this.email = email;
         this.points = points;
@@ -143,6 +159,40 @@ private String password;
         this.relationshipStatus = relationshipStatus;
         this.bio = bio;
         this.jiolocation = jiolocation;
+        this.loginProvider = loginProvider;
+        this.roleList = roleList;
+    }
+//    public UserMaster(Long userId, List<BadgeMaster> badge, List<PostMaster> post, List<RatingMaster> userFrom, List<RatingMaster> userTo, List<WhisperMaster> sentWhispers, List<WhisperMaster> receivedWhispers, String username, String password, String email, double points, byte[] profilePhoto, String gender, LocalDate dateOfBirth, LocalDate joinDate, Boolean status, String contactNo, String relationshipStatus, String bio, String jiolocation) {
+//        this.userId = userId;
+//        this.badge = badge;
+//        this.post = post;
+//        this.userFrom = userFrom;
+//        this.userTo = userTo;
+//        this.sentWhispers = sentWhispers;
+//        this.receivedWhispers = receivedWhispers;
+//        this.username = username;
+//        this.password = password;
+//        this.email = email;
+//        this.points = points;
+//        this.profilePhoto = profilePhoto;
+//        this.gender = gender;
+//        this.dateOfBirth = dateOfBirth;
+//        this.joinDate = joinDate;
+//        this.status = status;
+//        this.contactNo = contactNo;
+//        this.relationshipStatus = relationshipStatus;
+//        this.bio = bio;
+//        this.jiolocation = jiolocation;
+//    }
+
+
+
+    public String getLoginProvider() {
+        return loginProvider;
+    }
+
+    public void setLoginProvider(String loginProvider) {
+        this.loginProvider = loginProvider;
     }
 
     public Long getUserId() {
