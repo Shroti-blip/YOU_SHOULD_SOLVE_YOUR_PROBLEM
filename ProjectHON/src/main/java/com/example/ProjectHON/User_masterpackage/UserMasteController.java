@@ -163,6 +163,7 @@ public class UserMasterController {
             UserMaster user = userMaster.get();
             Long user_id = user.getUserId();
 
+            System.out.println("============Inside user login mapping============");
             session.setAttribute("user_id", user_id);
             session.setAttribute("user" , user);
             model.addAttribute("user", user);
