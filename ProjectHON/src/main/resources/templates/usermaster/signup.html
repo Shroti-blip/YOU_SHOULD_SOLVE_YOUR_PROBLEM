@@ -102,7 +102,7 @@
 
 
         .btn-signup {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ff0080, #ff8c00);
             border: none;
             color: white;
             padding: 14px;
@@ -187,6 +187,14 @@
         }
 
 
+        .username-chip:hover {
+    background-color: #e9ecef;
+    transition: background-color 0.2s;
+}
+.username-chip:active {
+    background-color: #d6d8db;
+}
+
 
 
 
@@ -200,17 +208,6 @@
         <form id="signupForm" method="post" th:action="@{/getotp}"
               th:object="${user}" enctype="multipart/form-data">
 
-            <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-user"></i></span>
-                    <input type="text" name="username" th:field="*{username}" class="form-control" id="username"
-                           placeholder="Choose a username"  style="text-transform: lowercase;" required>
-                </div>
-                <p th:each="err : ${#fields.errors('username')}" th:text="${err}" style="color:red;"></p>
-                <p id="checkUserName" style="color:red;"></p>
-                <p th:if="${error}" th:text="${error}"></p>
-            </div>
 
             <div class="mb-3">
                 <label for="email" class="form-label">Email</label>
@@ -224,6 +221,23 @@
             </div>
 
             <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                    <input type="text" name="username" th:field="*{username}" class="form-control" id="username"
+                           placeholder="Choose a username"   style="text-transform: lowercase;" required>
+<!--                    for suggestion-->
+<!--                    <div id="usernameSuggestions" class="border rounded bg-light mt-1 p-2 d-none shadow-sm"-->
+<!--                         style="position: absolute; width: 100%; z-index: 10;"></div>-->
+                </div>
+
+                <div id="usernameSuggestions" class="mt-2 d-flex flex-wrap gap-2"></div>
+                <p th:each="err : ${#fields.errors('username')}" th:text="${err}" style="color:red;"></p>
+                <p id="checkUserName" style="color:red;"></p>
+                <p th:if="${error}" th:text="${error}"></p>
+            </div>
+
+            <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-lock"></i></span>
@@ -231,6 +245,9 @@
 <!--                           id="password" placeholder="Create a strong password" required>-->
                     <input type="password" name="password" th:field="*{rawPassword}" class="form-control"
                            id="password" placeholder="Create a strong password" required>
+                    <div class="form-text">
+                        Must contain 1 letter, 1 number, 1 special char, and be 8+ characters long.
+                    </div>
                 </div>
                 <p th:each="err : ${#fields.errors('rawPassword')}" th:text="${err}" style="color:red;"></p>
             </div>
@@ -246,6 +263,13 @@
 <!--                    <option value="prefer-not-to-say">Prefer not to say</option>-->
                 </select>
             </div>
+<!--th:field="*{referredBy}"-->
+            <div class="mb-3">
+                <label for="referralCode" class="form-label">Referral Code (optional)</label>
+                <input type="text"  class="form-control" th:field="*{referralCode}" name="referralCode"
+                       id="referralCode" placeholder="Enter referral code if you have one">
+            </div>
+
 
             <button type="submit" class="btn btn-signup">
                 <i class="fas fa-user-plus"></i> Create Account
@@ -273,7 +297,7 @@
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                <a th:href="@{'/oauth2/authorization/google'}">Google</a>
+                <a th:href="@{'/oauth2/authorization/google'}" class="text-decoration-none text-dark">Google</a>
 
             </button>
             <button class="btn-social" >
@@ -289,20 +313,20 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
 
-
+<!--email check-->
 <script>
-    const emailInput = document.getElementById("email");
+    const emailIn = document.getElementById("email");
     const emailMsg = document.getElementById("emailCheckMsg");
     let emailTimer = null;
 
-    emailInput.addEventListener("input", function () {
+    emailIn.addEventListener("input", function () {
       clearTimeout(emailTimer);
       const email = this.value.trim();
 
       emailTimer = setTimeout(() => {
         if (email.length === 0) {
           emailMsg.textContent = "";
-          emailInput.classList.remove("is-invalid");
+          emailIn.classList.remove("is-invalid");
           return;
         }
 
@@ -311,10 +335,10 @@
           .then(data => {
             if (data.exists) {
               emailMsg.textContent = "This email is already registered.";
-              emailInput.classList.add("is-invalid");
+              emailIn.classList.add("is-invalid");
             } else {
               emailMsg.textContent = "";
-              emailInput.classList.remove("is-invalid");
+              emailIn.classList.remove("is-invalid");
             }
           })
           .catch(err => {
@@ -324,6 +348,32 @@
     });
 </script>
 
+<!--for password-->
+<script>
+    const password = document.getElementById('password');
+
+    password.addEventListener('input', () => {
+      const value = password.value;
+      const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+      if (regex.test(value)) {
+        password.classList.add('is-valid');
+        password.classList.remove('is-invalid');
+      } else {
+        password.classList.add('is-invalid');
+        password.classList.remove('is-valid');
+      }
+    });
+</script>
+
+<!--for no space in username-->
+<script>
+    document.getElementById("username").addEventListener("input" , function(e) {
+    this.value = this.value.replace(/\s/g, "");
+    });
+</script>
+
+<!--for checking if it exists already or not-->
 <script>
     document.addEventListener("DOMContentLoaded", () => {
       const usernameInput = document.getElementById("username");
@@ -357,6 +407,90 @@
             });
         }, 500);
       });
+    });
+</script>
+
+<!--for suggesting username-->
+<!--<script>-->
+<!--    document.getElementById("email").addEventListener("blur" , function() {-->
+<!--     const email = this.value;-->
+<!--     if(email){-->
+<!--        const baseUsername = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase();-->
+
+<!--        fetch(`/check-username?username=${baseUsername}`)-->
+<!--            .then(res => res.json())-->
+<!--            .then(data =>{-->
+<!--                if(data.exists){-->
+<!--                document.getElementById("username").value=baseUsername+Math.floor(Math.random()*100);-->
+<!--                }else{-->
+<!--                document.getElementById("username").value=baseUsername;-->
+<!--                }-->
+<!--            })-->
+<!--            .catch(()=>{-->
+<!--            document.getElementById("username").value=baseUsername;-->
+<!--            });-->
+<!--     }-->
+<!--    });-->
+<!--</script>-->
+
+
+<!--for suggesting multiple username-->
+<script>
+    const emailInput = document.getElementById("email");
+    const usernameInput = document.getElementById("username");
+    const suggestionsBox = document.getElementById("usernameSuggestions");
+
+    emailInput.addEventListener("blur", async () => {
+        const email = emailInput.value.trim();
+        if (!email) return;
+
+        const base = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+
+        // Generate 4–5 username variations
+        const suggestions = [
+            base,
+            base + Math.floor(Math.random() * 100),
+            base + "_" + Math.floor(Math.random() * 10),
+            base + "." + Math.floor(Math.random() * 10),
+            base + new Date().getFullYear().toString().slice(-2)
+        ];
+
+        // Check each suggestion availability
+        const available = [];
+        for (const suggestion of suggestions) {
+            const res = await fetch(`/check-username?username=${suggestion}`);
+            const data = await res.json();
+            if (!data.exists) available.push(suggestion);
+        }
+
+        // Clear old suggestions
+        suggestionsBox.innerHTML = "";
+
+        // Show all suggestions as clickable "chips"
+        if (available.length > 0) {
+            const label = document.createElement("div");
+            label.className = "text-muted w-100 mb-1";
+            label.textContent = "Suggestions:";
+            suggestionsBox.appendChild(label);
+
+            available.forEach(u => {
+                const chip = document.createElement("div");
+                chip.textContent = u;
+                chip.className = "username-chip px-3 py-1 rounded-pill border bg-light";
+                chip.style.cursor = "pointer";
+                chip.addEventListener("click", () => {
+                    usernameInput.value = u;
+                    suggestionsBox.innerHTML = ""; // clear after selecting
+                });
+                suggestionsBox.appendChild(chip);
+            });
+        } else {
+            const msg = document.createElement("div");
+            msg.className = "text-muted";
+            msg.textContent = "No suggestions available";
+            suggestionsBox.appendChild(msg);
+        }
+        console.log("Checking:", suggestion, "Response:", data);
     });
 </script>
 
