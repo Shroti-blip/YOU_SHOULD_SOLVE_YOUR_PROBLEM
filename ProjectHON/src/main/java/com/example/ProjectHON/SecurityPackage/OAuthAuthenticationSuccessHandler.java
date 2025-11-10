@@ -7,15 +7,20 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,28 +41,35 @@ public class OAuthAuthenticationSuccessHandler implements AuthenticationSuccessH
 
         DefaultOAuth2User user = (DefaultOAuth2User) authentication.getPrincipal();
 
-        //for printing in console.
-//       logger.info(user.getName());
-//
-//       user.getAttributes().forEach((key , value) ->{
-//           logger.info("{} => {}",key, value);
-//       });
-//
-//       logger.info(user.getAttributes().toString());
+
+
+
+//for printing in console.
+       logger.info(user.getName());
+
+       user.getAttributes().forEach((key , value) ->{
+           logger.info("{} => {}",key, value);
+       });
+
+       logger.info(user.getAttributes().toString());
 
         //saving data on db.
 
        String email =  user.getAttribute("email").toString();
         String name = user.getAttribute("name").toString();
-        String picture = user.getAttribute("picture").toString();
+        String imageUrl = user.getAttribute("picture").toString();
+//        String gender =  user.getAttribute("gender").toString();
         String firstName = name.split(" ")[0];
+
+        RestTemplate restTemplate = new RestTemplate();
+        byte[] imageBytes = restTemplate.getForObject(imageUrl, byte[].class);
 
 
 
         String baseUsername = firstName.toLowerCase() + "_g"; // => "muskan_g"
         String username = baseUsername;
 
-// 
+// for username to not to get same
         int counter = 1;
         while (userMasterRepository.findByUsername(username).isPresent()) {
             username = baseUsername + counter; // "muskan_g1"
@@ -66,32 +78,57 @@ public class OAuthAuthenticationSuccessHandler implements AuthenticationSuccessH
 
         //creating a new obj of Usermaster.
 
-        UserMaster userMaster = new UserMaster();
-//        userMaster.setFullName(name);
-        userMaster.setUsername(baseUsername);
-        userMaster.setEmail(email);
-        userMaster.setProfilePhoto(picture.getBytes());
-//        userMaster.setUserId(UUID.randomUUID().node());
-        userMaster.setRoleList(List.of("ROLE_USER"));
-        userMaster.setLoginProvider("GOOGLE");
+
 
         HttpSession session=request.getSession();
        UserMaster userMaster1 = userMasterRepository.findByEmail(email).orElse(null);
 
+       UserMaster userMaster;
        if(userMaster1 == null){
+           userMaster = new UserMaster();
+           userMaster.setUsername(baseUsername);
+           userMaster.setEmail(email);
+//           userMaster.setGender(gender);
+           userMaster.setProfilePhoto(imageBytes);
+           userMaster.setReferralCode(username.substring(0,3).toUpperCase()+UUID.randomUUID().toString().substring(0,5));
+           userMaster.setRoleList(List.of("ROLE_USER"));
+           userMaster.setLoginProvider("GOOGLE");
            userMasterRepository.save(userMaster);
            logger.info(user.getAttribute("name"));
 
-           session.setAttribute("userId",userMaster.getUserId());
        }
        else{
-           session.setAttribute("userId",userMaster1.getUserId());
+            userMaster = userMaster1;
        }
 
 
+        session.setAttribute("userId",userMaster.getUserId());
+
+        // Replace OAuth2User with your custom UserMaster
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(userMaster, null, userMaster.getAuthorities());
+
+        // Store authentication in the security context
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
 
         new DefaultRedirectStrategy().sendRedirect(request,response,"/user/profile");
 //        new DefaultRedirectStrategy().sendRedirect(request,response,"user/profile");
     }
+
+//    public byte[] downloadImage(String imageUrl) throws IOException {
+//        try (InputStream in = new URL(imageUrl).openStream()) {
+//            return in.readAllBytes();
+//        }
+//    }
 }
+
+
+
+
+
+
+
+
+
+
