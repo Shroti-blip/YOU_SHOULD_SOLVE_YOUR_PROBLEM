@@ -47,7 +47,13 @@ public class UserMaster implements UserDetails {
     @ManyToMany(mappedBy = "receiver", cascade = CascadeType.ALL)
     private List<WhisperMaster> receivedWhispers; // Receiver
 
-//    @NotBlank(message = "Username is required")
+//    for referral thing.
+    @OneToMany(mappedBy = "referredBy" ,cascade=CascadeType.ALL)
+    private List<UserMaster> referredBy= new ArrayList<>();
+
+
+
+    //    @NotBlank(message = "Username is required")
     @Size(min = 4, max = 20, message = "Username must be 4–20 characters long")
     @Pattern(regexp = "^[^\\s]+$", message = "Username cannot contain spaces")
     private String username;
@@ -55,13 +61,6 @@ public class UserMaster implements UserDetails {
     @Column(name="fullname")
     private String fullName;
 
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
 
     // 🟩 Add a transient field for validation
 @Transient
@@ -71,10 +70,6 @@ public class UserMaster implements UserDetails {
 )
 private String rawPassword;
 
-//    @Pattern(
-//            regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$",
-//            message = "Password must be 6–15 characters long and include at least 1 letter, 1 number, and 1 special character."
-//    )
 private String password;
 
     @Email(message = "Please enter a valid email address")
@@ -115,22 +110,35 @@ private String password;
     private String loginProvider = "DEFAULT";
 
 
+    @Column(name = "complete_profile")
+    private Boolean completeProfile = false;
+
+//    For referral code
+
+    private String referralCode;
+
+    public String getReferralCode() {
+        return referralCode;
+    }
+
+    public void setReferralCode(String referralCode) {
+        this.referralCode = referralCode;
+    }
+
+
+    public List<UserMaster> getReferredBy() {
+        return referredBy;
+    }
+
+    public void setReferredBy(List<UserMaster> referredBy) {
+        this.referredBy = referredBy;
+    }
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
     private List<String> roleList = new ArrayList<>();
 
-    public Boolean getStatus() {
-        return status;
-    }
-
-    public List<String> getRoleList() {
-        return roleList;
-    }
-
-    public void setRoleList(List<String> roleList) {
-        this.roleList = roleList;
-    }
 
     public UserMaster() {
     }
@@ -162,29 +170,35 @@ private String password;
         this.loginProvider = loginProvider;
         this.roleList = roleList;
     }
-//    public UserMaster(Long userId, List<BadgeMaster> badge, List<PostMaster> post, List<RatingMaster> userFrom, List<RatingMaster> userTo, List<WhisperMaster> sentWhispers, List<WhisperMaster> receivedWhispers, String username, String password, String email, double points, byte[] profilePhoto, String gender, LocalDate dateOfBirth, LocalDate joinDate, Boolean status, String contactNo, String relationshipStatus, String bio, String jiolocation) {
-//        this.userId = userId;
-//        this.badge = badge;
-//        this.post = post;
-//        this.userFrom = userFrom;
-//        this.userTo = userTo;
-//        this.sentWhispers = sentWhispers;
-//        this.receivedWhispers = receivedWhispers;
-//        this.username = username;
-//        this.password = password;
-//        this.email = email;
-//        this.points = points;
-//        this.profilePhoto = profilePhoto;
-//        this.gender = gender;
-//        this.dateOfBirth = dateOfBirth;
-//        this.joinDate = joinDate;
-//        this.status = status;
-//        this.contactNo = contactNo;
-//        this.relationshipStatus = relationshipStatus;
-//        this.bio = bio;
-//        this.jiolocation = jiolocation;
-//    }
 
+    public Boolean getCompleteProfile() {
+        return completeProfile;
+    }
+
+    public void setCompleteProfile(Boolean completeProfile) {
+        this.completeProfile = completeProfile;
+    }
+
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public Boolean getStatus() {
+        return status;
+    }
+
+    public List<String> getRoleList() {
+        return roleList;
+    }
+
+    public void setRoleList(List<String> roleList) {
+        this.roleList = roleList;
+    }
 
 
     public String getLoginProvider() {
