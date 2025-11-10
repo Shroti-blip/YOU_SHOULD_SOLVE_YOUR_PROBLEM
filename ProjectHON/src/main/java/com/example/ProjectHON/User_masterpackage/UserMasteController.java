@@ -19,10 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Period;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Controller
 public class UserMasterController {
@@ -69,6 +66,12 @@ public class UserMasterController {
                 if (userMasterRepository.findByEmail(user.getEmail()).isPresent()) {
                     model.addAttribute("error", "Email address already exists");
                     return "usermaster/signup";
+                }
+
+               Optional<UserMaster> referral = userMasterRepository.findByReferralCode(user.getReferralCode());
+                if(referral.isPresent()){
+                    user.setPoints(user.getPoints()+50);
+
                 }
 //                if(profile_pic != null && !profile_pic.isEmpty()){
 //                    user.setProfilePhoto(profile_pic.getBytes());
@@ -126,6 +129,8 @@ public class UserMasterController {
 //            password problem while registration.
             user.setPassword(passwordEncoder.encode(user.getRawPassword()));
             user.getRoleList().add("ROLE_USER");
+//           For generating User Referral code.
+            user.setReferralCode(user.getUsername().substring(0,3).toUpperCase()+ UUID.randomUUID().toString().substring(0,5));
             userMasterRepository.save(user);
             System.out.println("Successful Registration.");
             emailService.sendAfterRegistration(user.getEmail());
