@@ -8,5 +8,6 @@ public interface UserMasterRepository extends JpaRepository<UserMaster,Long> {
     Optional<UserMaster> findByEmail(String email);
     Optional<UserMaster> findByEmailAndPassword(String email , String password);
     Optional<UserMaster> findByUsername(String username);
+    Optional<UserMaster> findByReferralCode(String referralCode);
 
 }
