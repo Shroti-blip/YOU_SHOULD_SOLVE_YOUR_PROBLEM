@@ -69,13 +69,20 @@ public class UserMasterController {
                 }
 
                Optional<UserMaster> referral = userMasterRepository.findByReferralCode(user.getReferralCode());
-                if(referral.isPresent()){
-                    user.setPoints(user.getPoints()+50);
 
+                if(referral.isPresent()){
+                    //get user who referred their code to the other one.
+                  UserMaster refer =  referral.get();
+                  System.out.println("========== Total points for that code owner =========" + refer.getPoints());
+
+                  //working
+                    user.setReferredBy(refer);
+                    // reward the referrer
+                    refer.setPoints(refer.getPoints()+150);
+                    userMasterRepository.save(refer);
+                    //setting points for user who is doing signup.
+                    user.setPoints(user.getPoints()+50);
                 }
-//                if(profile_pic != null && !profile_pic.isEmpty()){
-//                    user.setProfilePhoto(profile_pic.getBytes());
-//                }
 
 
                 String otp = emailService.sendOtp(user.getEmail());
@@ -157,9 +164,7 @@ public class UserMasterController {
 
     @GetMapping("/user/profile")
     public String getLogin(Model model, HttpSession session) {
-
         System.out.println("Inside login mapping");
-
         Long userId = (Long) session.getAttribute("userId");
 
         Optional<UserMaster> userMaster = userMasterRepository.findById(userId);
@@ -167,7 +172,6 @@ public class UserMasterController {
         if(userMaster.isPresent()) {
             UserMaster user = userMaster.get();
             Long user_id = user.getUserId();
-
             System.out.println("============Inside user login mapping============");
             session.setAttribute("user_id", user_id);
             session.setAttribute("user" , user);
@@ -440,6 +444,14 @@ public void initBinder(WebDataBinder binder) {
       return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/check-referralCode")
+    @ResponseBody
+    public ResponseEntity<Map<String , Boolean>> checkReferralCode(@RequestParam("referralCode") String referralCode){
+        boolean exists = userMasterRepository.findByReferralCode(referralCode).isPresent();
+        Map<String , Boolean> response = new HashMap<>();
+        response.put("exists" , exists);
+        return ResponseEntity.ok(response);
+    }
 
 
 
