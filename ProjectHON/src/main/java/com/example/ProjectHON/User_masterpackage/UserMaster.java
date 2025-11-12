@@ -48,9 +48,16 @@ public class UserMaster implements UserDetails {
     private List<WhisperMaster> receivedWhispers; // Receiver
 
 //    for referral thing.
-    @OneToMany(mappedBy = "referredBy" ,cascade=CascadeType.ALL)
-    private List<UserMaster> referredBy= new ArrayList<>();
+//    @OneToMany(mappedBy = "referredBy" ,cascade=CascadeType.ALL)
+//    private List<UserMaster> referredBy= new ArrayList<>();
 
+    @ManyToOne
+    @JoinColumn(name = "referred_by_id") // column to store the referrer’s ID
+    private UserMaster referredBy;
+
+    //  this user referred these users
+    @OneToMany(mappedBy = "referredBy", cascade = CascadeType.ALL)
+    private List<UserMaster> referrals = new ArrayList<>();
 
 
     //    @NotBlank(message = "Username is required")
@@ -65,8 +72,8 @@ public class UserMaster implements UserDetails {
     // 🟩 Add a transient field for validation
 @Transient
 @Pattern(
-        regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$",
-        message = "Password must be 6–15 characters long and include at least 1 letter, 1 number, and 1 special character."
+        regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{8,15}$",
+        message = "Password must be 8–15 characters long and include at least 1 letter, 1 number, and 1 special character."
 )
 private String rawPassword;
 
@@ -126,13 +133,7 @@ private String password;
     }
 
 
-    public List<UserMaster> getReferredBy() {
-        return referredBy;
-    }
 
-    public void setReferredBy(List<UserMaster> referredBy) {
-        this.referredBy = referredBy;
-    }
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
@@ -169,6 +170,22 @@ private String password;
         this.jiolocation = jiolocation;
         this.loginProvider = loginProvider;
         this.roleList = roleList;
+    }
+
+    public UserMaster getReferredBy() {
+        return referredBy;
+    }
+
+    public void setReferredBy(UserMaster referredBy) {
+        this.referredBy = referredBy;
+    }
+
+    public List<UserMaster> getReferrals() {
+        return referrals;
+    }
+
+    public void setReferrals(List<UserMaster> referrals) {
+        this.referrals = referrals;
     }
 
     public Boolean getCompleteProfile() {
