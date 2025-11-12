@@ -28,7 +28,6 @@ public class SecurityConfig {
     CustomSuccessHandler customSuccessHandler;
 
 
-
     @Bean
     public AuthenticationProvider authenticationProvider(){
         DaoAuthenticationProvider daoAuthenticationProvider=new DaoAuthenticationProvider();
@@ -42,6 +41,7 @@ public class SecurityConfig {
 
 
 
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
 
@@ -51,9 +51,9 @@ public class SecurityConfig {
         // Configuration
         // urls ko configure kiya hai ki kon se public rahenge or kon se private rahenge.
         httpSecurity.authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/login", "/register","/css/", "/js/","Images/","/check-email" ,"/check-username","/getotp" ,"/savedata").permitAll()
-                .requestMatchers("/user/").hasAnyRole("USER","ADMIN")
-                 .requestMatchers("/admin/").hasRole("ADMIN")
+                .requestMatchers("/login", "/register","/css/", "/js/","Images/","/check-email" ,"/check-username","/getotp" ,"/savedata" ,"/check-referralCode","/forgetpassword" , "/getEmail" ,"/resetPassword" ,"/check-otp/**").permitAll()
+                .requestMatchers("/user/**").hasAnyRole("USER","ADMIN")
+                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
         );
 
@@ -105,6 +105,7 @@ public class SecurityConfig {
 //        httpSecurity.oauth2Login(Customizer.withDefaults());
 
         //for your custom signup page
+        //for google sign up
 
         httpSecurity.oauth2Login(oauth -> {
             oauth.loginPage("/login");
@@ -128,3 +129,21 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
+
+
+
+
+//httpSecurity.authorizeHttpRequests(authorize -> authorize
+//        .requestMatchers("/login", "/register","/css/", "/js/","Images/","/check-email" ,"/check-username","/getotp" ,"/savedata").permitAll()
+//                .requestMatchers("/user/").hasAnyRole("USER","ADMIN")
+//                 .requestMatchers("/admin/").hasRole("ADMIN")
+//                .anyRequest().authenticated()
+//        );
+
+
+// Replace OAuth2User with your custom UserMaster
+//UsernamePasswordAuthenticationToken authenticationToken =
+//        new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+//
+//// Store authentication in the security context
+//        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
