@@ -112,7 +112,8 @@ public class OAuthAuthenticationSuccessHandler implements AuthenticationSuccessH
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
 
-        new DefaultRedirectStrategy().sendRedirect(request,response,"/user/profile");
+        //redirect to mapping directly
+        new DefaultRedirectStrategy().sendRedirect(request,response,"/user/googleProfile");
 //        new DefaultRedirectStrategy().sendRedirect(request,response,"user/profile");
     }
 
