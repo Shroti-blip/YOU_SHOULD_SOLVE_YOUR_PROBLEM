@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.Banner;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,7 +16,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Period;
@@ -39,6 +42,11 @@ public class UserMasterController {
     public String getPage(Model model) {
         model.addAttribute("user", new UserMaster());
         return "usermaster/signup";
+    }
+
+    @GetMapping("/home")
+    public String getHomePage(){
+        return "usermaster/dashboard";
     }
 
     //      @RequestParam("photo") MultipartFile profile_pic,
@@ -109,7 +117,8 @@ public class UserMasterController {
 
     @PostMapping("/savedata")
     public String saveData(Model model, HttpSession session,
-                           @RequestParam("userOtp") int userOtp) {
+                           @RequestParam("userOtp") int userOtp,
+                           RedirectAttributes redirectAttributes) {
         try {
             System.out.println("====================Save Data process=====================");
             UserMaster user = (UserMaster) session.getAttribute("user");
@@ -141,6 +150,23 @@ public class UserMasterController {
             userMasterRepository.save(user);
             System.out.println("Successful Registration.");
             emailService.sendAfterRegistration(user.getEmail());
+
+
+        Optional<UserMaster> referral = userMasterRepository.findByReferralCode(user.getReferralCode());
+
+            if(referral.isPresent()) {
+
+//                UserMaster refer = referral.get();
+                if (referral != null && !referral.isEmpty()) {
+                    // ✅ show popup for new user
+                    redirectAttributes.addFlashAttribute("popupMessage",
+                            "🎉 You signed up successfully using a referral code! You and your referrer earned 100 points!");
+                } else {
+                    redirectAttributes.addFlashAttribute("popupMessage",
+                            "✅ Registration successful! Welcome aboard!");
+                }
+            }
+
         } catch (Exception e) {
             model.addAttribute("error", "Error processing files: " + e.getMessage());
             System.out.println("Exception is here in save data " + e);
@@ -161,7 +187,6 @@ public class UserMasterController {
 
 
     //Login code
-
     @GetMapping("/user/profile")
     public String getLogin(Model model, HttpSession session) {
         System.out.println("Inside login mapping");
@@ -185,6 +210,135 @@ public class UserMasterController {
     }
 
 
+//    for complete user profile
+
+
+    @PostMapping("/completeProfile")
+    public String completeUserProfile(Model model , HttpSession session,
+                                      @Valid @ModelAttribute("user") UserMaster userMaster,
+                                      BindingResult bindingResult,
+                                      @RequestParam("profilePhoto") MultipartFile file){
+
+
+
+        //first get session user then fetch db user
+        UserMaster sessionUser  = (UserMaster) session.getAttribute("user");
+
+        System.out.println("value of email is : " + sessionUser .getEmail());
+        Optional<UserMaster> data = userMasterRepository.findByEmail(sessionUser.getEmail());
+//        Optional<UserMaster> data = (Optional)userMasterRepository.findByUsername(sessionUser.getUsername());
+
+        if(bindingResult.hasErrors()){
+            if(data.isPresent()){
+                userMaster.setProfilePhoto(data.get().getProfilePhoto());
+            }
+            model.addAttribute("user" , userMaster);
+            return  "usermaster/user_profile";
+        }
+        try{
+            if(data .isPresent()){
+                UserMaster user = data.get();
+                user.setUsername(userMaster.getUsername());
+                user.setEmail(userMaster.getEmail());
+                user.setContactNo(userMaster.getContactNo());
+                user.setBio(userMaster.getBio());
+                user.setDateOfBirth(userMaster.getDateOfBirth());
+                user.setRelationshipStatus(userMaster.getRelationshipStatus());
+                user.setJiolocation(userMaster.getJiolocation());
+                user.setGender(userMaster.getGender());
+                user.setFullName(userMaster.getFullName());
+                System.out.println("==========Username is========= : " + userMaster.getFullName());
+                if(file != null && !file.isEmpty()){
+                    user.setProfilePhoto(file.getBytes());
+//                 System.out.println("====getting photos in byte=====");
+                }
+                //dont have to add joining date and password
+
+                userMasterRepository.save(user);
+                System.out.println("==========================prfile update done.==============================");
+            }
+        } catch (Exception e) {
+            System.out.println("===========Exception===========" + e.getMessage());
+        }
+
+        return "usermaster/login";
+    }
+
+
+    @GetMapping("/user/googleProfile")
+    public String getGoogleProfileInfoPage(HttpSession session , Model model){
+        Long sessionUserId =   (Long) session.getAttribute("userId");
+        Optional<UserMaster> userMaster = userMasterRepository.findById(sessionUserId);
+        model.addAttribute("user" , userMaster);
+        return "usermaster/googleProfile";
+    }
+
+    @PostMapping("/completeGoogleProfile")
+    public String saveGoogleSignUpInfo(HttpSession session , Model model,
+                                       @Valid @ModelAttribute("user") UserMaster  userMaster ,
+                                       BindingResult bindingResult,
+                                       @RequestParam("profilePhoto") MultipartFile file){
+
+        if(bindingResult.hasErrors()){
+            System.out.println("Error is here: ====="+bindingResult.getAllErrors());
+            return "redirect:/user/googleProfile";
+        }
+
+        //first get session user then get db user;
+        Long sessionUserId =   (Long) session.getAttribute("userId");
+        Optional<UserMaster> userMasterOptional=  userMasterRepository.findById(sessionUserId);
+
+          if (sessionUserId == null) {
+            return "redirect:/login";
+        }
+
+          try {
+              if(userMasterOptional != null){
+                  UserMaster userMaster1 =userMasterOptional.get();
+                  userMaster1.setContactNo(userMaster.getContactNo());
+                  userMaster1.setDateOfBirth(userMaster.getDateOfBirth());
+                  if(file != null && !file.isEmpty()){
+                      userMaster1.setProfilePhoto(file.getBytes());
+                  }
+
+                  //for referral code points .
+                  Optional<UserMaster> referral = userMasterRepository.findByReferralCode(userMaster.getReferralCode());
+
+                  if(referral.isPresent()){
+                      //get user who referred their code to the other one.
+                      UserMaster refer =  referral.get();
+                      System.out.println("========== Total points for that code owner =========" + refer.getPoints());
+
+                      //working
+                      userMaster1.setReferredBy(refer);
+                      // reward the referrer
+                      refer.setPoints(refer.getPoints()+150);
+                      userMasterRepository.save(refer);
+                      //setting points for user who is doing signup.
+                      userMaster1.setPoints(userMaster.getPoints()+50);
+                  }
+
+
+                  userMasterRepository.save(userMaster1);
+                  return "redirect:/home";
+              }
+          }catch (Exception e){
+              System.out.println("Exception is : " + e);
+          }
+
+
+     return "usermaster/login";
+    }
+
+
+    @GetMapping("/skipProfile")
+    public String skipProfile(Principal principal) {
+        String username = principal.getName();
+        UserMaster user = userMasterRepository.findByUsername(username).orElseThrow();
+        user.setCompleteProfile(false); // add this field in your entity
+        userMasterRepository.save(user);
+        return "redirect:/home";
+    }
 
 
 
@@ -225,11 +379,12 @@ public class UserMasterController {
     public ResponseEntity<Map<String , Boolean>> checkOtp( @PathVariable("otp") String otp,
                                                            Model model , HttpSession session){
 
+        System.out.println("Inside the otp method");
         String sessionOtp = (String) session.getAttribute("otp");
         String email = (String) session.getAttribute("email");
         LocalTime tenMinLater = (LocalTime) session.getAttribute("tenMinLater");
 
-        Map<String , Boolean> response = new HashMap<>();
+        Map<String, Boolean> response = new HashMap<>();
 
         //  Check OTP expiry
         if (LocalTime.now().isAfter(tenMinLater)) {
@@ -336,70 +491,6 @@ public String resetPassword(Model model,
 
 
 
-//    for complete user profile
-
-//    @GetMapping("/getuserprofile")
-//    public String getUserProfile(Model model  , HttpSession session){
-//    UserMaster user = (UserMaster)session.getAttribute("user");
-////    model.addAttribute("userdata" , new UserMaster());
-//    model.addAttribute("user" , user);
-//    return "usermaster/user_profile";
-//    }
-
-    @PostMapping("/completeProfile")
-    public String completeUserProfile(Model model , HttpSession session,
-                                      @Valid @ModelAttribute("user") UserMaster userMaster,
-                                      BindingResult bindingResult,
-                                      @RequestParam("profilePhoto") MultipartFile file){
-
-
-
-        //first get session user then fetch db user
-        UserMaster sessionUser  = (UserMaster) session.getAttribute("user");
-
-        System.out.println("value of email is : " + sessionUser .getEmail());
-        Optional<UserMaster> data = userMasterRepository.findByEmail(sessionUser.getEmail());
-//        Optional<UserMaster> data = (Optional)userMasterRepository.findByUsername(sessionUser.getUsername());
-
-
-        if(bindingResult.hasErrors()){
-            if(data.isPresent()){
-                userMaster.setProfilePhoto(data.get().getProfilePhoto());
-            }
-            model.addAttribute("user" , userMaster);
-            return  "usermaster/user_profile";
-        }
-        try{
-        if(data .isPresent()){
-            UserMaster user = data.get();
-            user.setUsername(userMaster.getUsername());
-            user.setEmail(userMaster.getEmail());
-            user.setContactNo(userMaster.getContactNo());
-            user.setBio(userMaster.getBio());
-            user.setDateOfBirth(userMaster.getDateOfBirth());
-            user.setRelationshipStatus(userMaster.getRelationshipStatus());
-            user.setJiolocation(userMaster.getJiolocation());
-            user.setGender(userMaster.getGender());
-            user.setFullName(userMaster.getFullName());
-            System.out.println("==========Username is========= : " + userMaster.getFullName());
-             if(file != null && !file.isEmpty()){
-                 user.setProfilePhoto(file.getBytes());
-//                 System.out.println("====getting photos in byte=====");
-             }
-            //dont have to add joining date and password
-
-            System.out.println("===================Befor profile update===============");
-            userMasterRepository.save(user);
-            System.out.println("==========================prfile update done.==============================");
-        }
-        } catch (Exception e) {
-            System.out.println("===========Exception===========" + e.getMessage());
-        }
-
-     return "usermaster/login";
-    }
-
-
 //    for stopping binding profile manually , image is getting saved in db.
 //    or you can just change the name of profilePhoto in html and in requestparam
 @InitBinder
@@ -453,6 +544,12 @@ public void initBinder(WebDataBinder binder) {
         return ResponseEntity.ok(response);
     }
 
+//    @GetMapping("/check-referralCode")
+//    public ResponseEntity<Map<String, Boolean>> checkReferralCode(@RequestParam String referralCode) {
+//        boolean exists = userMasterRepository.findByReferralCode(referralCode).isPresent();
+//        Map<String , Boolean> response  = Map.of("exists", exists);
+//        return ResponseEntity.ok(response); //  standard 200 OK
+//    }
 
 
 }
