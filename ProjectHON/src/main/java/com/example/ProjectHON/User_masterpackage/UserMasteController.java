@@ -152,7 +152,7 @@ public class UserMasterController {
             emailService.sendAfterRegistration(user.getEmail());
 
 
-        Optional<UserMaster> referral = userMasterRepository.findByReferralCode(user.getReferralCode());
+            Optional<UserMaster> referral = userMasterRepository.findByReferralCode(user.getReferralCode());
 
             if(referral.isPresent()) {
 
@@ -175,6 +175,8 @@ public class UserMasterController {
 
     }
 
+
+
     @GetMapping("/login")
     public String getLoginPage() {
         return "usermaster/login";
@@ -187,7 +189,7 @@ public class UserMasterController {
 
 
     //Login code
-    @GetMapping("/user/profile")
+    @GetMapping("user/profile")
     public String getLogin(Model model, HttpSession session) {
         System.out.println("Inside login mapping");
         Long userId = (Long) session.getAttribute("userId");
@@ -276,8 +278,7 @@ public class UserMasterController {
     @PostMapping("/completeGoogleProfile")
     public String saveGoogleSignUpInfo(HttpSession session , Model model,
                                        @Valid @ModelAttribute("user") UserMaster  userMaster ,
-                                       BindingResult bindingResult,
-                                       @RequestParam("profilePhoto") MultipartFile file){
+                                       BindingResult bindingResult){
 
         if(bindingResult.hasErrors()){
             System.out.println("Error is here: ====="+bindingResult.getAllErrors());
@@ -295,11 +296,12 @@ public class UserMasterController {
           try {
               if(userMasterOptional != null){
                   UserMaster userMaster1 =userMasterOptional.get();
-                  userMaster1.setContactNo(userMaster.getContactNo());
-                  userMaster1.setDateOfBirth(userMaster.getDateOfBirth());
-                  if(file != null && !file.isEmpty()){
-                      userMaster1.setProfilePhoto(file.getBytes());
-                  }
+                  userMaster1.setGender(userMaster.getGender());
+                  userMaster1.setPassword(passwordEncoder.encode(userMaster.getRawPassword()));
+//                  userMaster1.setDateOfBirth(userMaster.getDateOfBirth());
+//                  if(file != null && !file.isEmpty()){
+//                      userMaster1.setProfilePhoto(file.getBytes());
+//                  }
 
                   //for referral code points .
                   Optional<UserMaster> referral = userMasterRepository.findByReferralCode(userMaster.getReferralCode());
