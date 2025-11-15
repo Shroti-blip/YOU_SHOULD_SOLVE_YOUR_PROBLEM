@@ -8,7 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/*        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);*/
             min-height: 100vh;
             padding: 40px 0;
         }
@@ -26,7 +26,7 @@
         }
 
         .profile-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+           /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);*/
             padding: 20px 10px 35px;
             position: relative;
             text-align: center;
@@ -41,7 +41,8 @@
             border: 5px solid white;
             overflow: hidden;
             box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-            background: #f8f9fa;
+             background: linear-gradient(135deg, #ff0080, #ff8c00);
+
         }
 
         .profile-pic-container img {
@@ -144,6 +145,110 @@
                 padding: 30px 20px;
             }
         }
+
+
+
+        /* for popup starts here */
+
+        .popup-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.4s ease;
+}
+
+.popup-overlay.show {
+  opacity: 1; visibility: visible;
+}
+
+.popup {
+  background: radial-gradient(circle, #222 0%, #000 100%);
+  padding: 30px 60px;
+  border-radius: 20px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+  animation: popupScale 0.6s ease-out;
+}
+
+@keyframes popupScale {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.badge-wrapper {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.badge {
+  background: linear-gradient(135deg, #ffd700, #ffb700);
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+  animation: pulse 1.5s infinite;
+}
+
+.badge-text {
+  font-size: 2em;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 10px #fff;
+}
+
+.shine {
+  position: absolute;
+  top: 0; left: -75%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.2), rgba(255,255,255,0));
+  transform: skewX(-25deg);
+  animation: shine 2s infinite;
+}
+
+@keyframes shine {
+  0% { left: -75%; }
+  100% { left: 125%; }
+}
+
+.points-earned {
+  font-size: 1.4em;
+  margin-top: 10px;
+  color: #ffd700;
+  font-weight: bold;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  font-size: 28px;
+  color: #666;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1001;
+}
+
+.close-btn:hover {
+  color: #000;
+  transform: rotate(90deg);
+}
+
+/* for popup ends here */
     </style>
 </head>
 <body>
@@ -301,19 +406,37 @@
 
                 <div class="text-center">
                     <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-save"></i> Save Profile
-                    </button>
-                    <button type="reset" class="btn btn-secondary">
-                        <i class="fas fa-undo"></i> Reset
-                    </button>
+                        <i class="fas fa-save"></i> Save Profile</button>
+
+                        <a th:href="@{/skipProfile}" class="text-decoration-none">
+                    <button  class="btn btn-secondary" value="skip" name="action" id="skipBtn">
+                        <i class="fas fa-undo"></i> Skip Now
+                    </button></a>
                 </div>
             </form>
         </div>
     </div>
 </div>
+<!--for popup-->
+<div class="popup-overlay" id="popupOverlay">
+    <div class="popup">
+        <button class="close-btn" onclick="closePopup()">&times;</button>
+
+        <div class="badge-wrapper">
+            <div class="badge">
+                <div class="shine"></div>
+                <div class="badge-text">+<span id="badgePoints">50</span></div>
+            </div>
+        </div>
+
+        <div class="points-earned">You earned <span id="pointsText">50</span> points!</div>
+    </div>
+</div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
+<!--profile pic -->
 <script>
     // Profile picture upload
     document.querySelector('.profile-pic-container').addEventListener('click', function() {
@@ -341,6 +464,69 @@
   });
 </script>
 
+<!--for popup of 50 points.-->
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const popupMessage = /*[[${popupMessage}]]*/ null;
+
+    function showPopup(points) {
+        document.getElementById('badgePoints').textContent = points;
+        document.getElementById('pointsText').textContent = points;
+        const overlay = document.getElementById('popupOverlay');
+        overlay.classList.add('show');
+        setTimeout(() => overlay.classList.remove('show'), 3000);
+    }
+
+    function closePopup() {
+        const overlay = document.getElementById("popupOverlay");
+        overlay.classList.remove("show");
+    }
+
+    // Detect points from backend message
+    if (popupMessage && popupMessage.includes('50')) {
+        showPopup(50);
+    } else if (popupMessage && popupMessage.includes('100')) {
+        showPopup(100);
+    } else if (popupMessage && popupMessage.includes('150')) {
+        showPopup(150);
+    }
+    /*]]>*/
+</script>
+
+
+
+
+<!--<script th:inline="javascript">-->
+<!--    /*<![CDATA[*/-->
+<!--        const popupMessage = /*[[${popupMessage}]]*/ null;-->
+
+<!--        console.log("Popup Message:", popupMessage); // for debugging-->
+
+<!--        if (popupMessage !== null && popupMessage !== '') {-->
+<!--            Swal.fire({-->
+<!--                icon: 'success',-->
+<!--                title: 'Congratulations!',-->
+<!--                text: popupMessage,-->
+<!--                showConfirmButton: false,-->
+<!--                timer: 4000,-->
+<!--                timerProgressBar: true-->
+<!--            });-->
+<!--        }-->
+<!--    /*]]>*/-->
+<!--</script>-->
+
+
+<!--skip button js-->
+<script>
+    document.getElementById("skipBtn").addEventListener("click", function(e) {
+        e.preventDefault();
+        if (confirm("Are you sure you want to skip completing your profile for now?")) {
+            window.location.href = "/skipProfile";
+        }
+    });
 </script>
 </body>
 </html>
