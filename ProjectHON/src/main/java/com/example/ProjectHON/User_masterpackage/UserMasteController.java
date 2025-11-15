@@ -44,8 +44,14 @@ public class UserMasterController {
         return "usermaster/signup";
     }
 
-    @GetMapping("/home")
-    public String getHomePage(){
+    @GetMapping("/user/home")
+    public String getHomePage(@RequestParam(value = "referrerPopupMessage",required = false)Boolean isReferrerPopupAdded,
+                              Model model){
+        if(Boolean.TRUE.equals(isReferrerPopupAdded)){
+            model.addAttribute("referrerPopupMessage",true);
+            System.out.println("Inside the veer Method");
+        }
+
         return "usermaster/dashboard";
     }
 
@@ -107,6 +113,7 @@ public class UserMasterController {
 
             } catch (Exception e) {
                 System.out.println("here is problem." +e.getMessage());
+                e.printStackTrace();
             }
         }
 
@@ -157,14 +164,14 @@ public class UserMasterController {
             if(referral.isPresent()) {
 
 //                UserMaster refer = referral.get();
-                if (referral != null && !referral.isEmpty()) {
-                    // ✅ show popup for new user
-                    redirectAttributes.addFlashAttribute("popupMessage",
-                            "🎉 You signed up successfully using a referral code! You and your referrer earned 100 points!");
-                } else {
-                    redirectAttributes.addFlashAttribute("popupMessage",
-                            "✅ Registration successful! Welcome aboard!");
-                }
+//                if (referral != null && !referral.isEmpty()) {
+//                    // show popup for new user
+//                    redirectAttributes.addFlashAttribute("popupMessage",
+//                            "🎉 You signed up successfully using a referral code! You and your referrer earned 100 points!");
+//                } else {
+//                    redirectAttributes.addFlashAttribute("popupMessage",
+//                            " Registration successful! Welcome aboard!");
+//                }
             }
 
         } catch (Exception e) {
@@ -204,9 +211,15 @@ public class UserMasterController {
             session.setAttribute("user" , user);
             model.addAttribute("user", user);
             model.addAttribute("msg" , "User is Registered.");
+
+           if(user.getReferredBy() != null){
+               System.out.println("==========checking condition for popup=============");
+               model.addAttribute("popupMessage", "🎉 You earned 50 points for joining with a referral!");
+           }
+
             return "usermaster/user_profile";
         }
-        model.addAttribute("error", "user not found!");
+        model.addAttribute("error", "Invalid Credentials!");
         return "usermaster/login";
 
     }
@@ -263,7 +276,7 @@ public class UserMasterController {
             System.out.println("===========Exception===========" + e.getMessage());
         }
 
-        return "usermaster/login";
+        return "redirect:/user/home";
     }
 
 
@@ -277,13 +290,15 @@ public class UserMasterController {
 
     @PostMapping("/completeGoogleProfile")
     public String saveGoogleSignUpInfo(HttpSession session , Model model,
-                                       @Valid @ModelAttribute("user") UserMaster  userMaster ,
-                                       BindingResult bindingResult){
+                                       @RequestParam("gender") String gender,
+                                       @RequestParam("password") String password,
+                                       @RequestParam("referralCode") String referralCode,
+                                       RedirectAttributes redirectAttributes){
 
-        if(bindingResult.hasErrors()){
-            System.out.println("Error is here: ====="+bindingResult.getAllErrors());
-            return "redirect:/user/googleProfile";
-        }
+//        if(bindingResult.hasErrors()){
+//            System.out.println("Error is here: ====="+bindingResult.getAllErrors());
+//            return "redirect:/user/googleProfile";
+//        }
 
         //first get session user then get db user;
         Long sessionUserId =   (Long) session.getAttribute("userId");
@@ -296,15 +311,17 @@ public class UserMasterController {
           try {
               if(userMasterOptional != null){
                   UserMaster userMaster1 =userMasterOptional.get();
-                  userMaster1.setGender(userMaster.getGender());
-                  userMaster1.setPassword(passwordEncoder.encode(userMaster.getRawPassword()));
+                  userMaster1.setGender(gender);
+                  userMaster1.setPassword(passwordEncoder.encode(password));
 //                  userMaster1.setDateOfBirth(userMaster.getDateOfBirth());
 //                  if(file != null && !file.isEmpty()){
 //                      userMaster1.setProfilePhoto(file.getBytes());
 //                  }
+                  System.out.println("==========inside google profile for saving code ========");
+//                  userMaster1.setReferralCode(referralCode);
 
                   //for referral code points .
-                  Optional<UserMaster> referral = userMasterRepository.findByReferralCode(userMaster.getReferralCode());
+                  Optional<UserMaster> referral = userMasterRepository.findByReferralCode(referralCode);
 
                   if(referral.isPresent()){
                       //get user who referred their code to the other one.
@@ -315,14 +332,23 @@ public class UserMasterController {
                       userMaster1.setReferredBy(refer);
                       // reward the referrer
                       refer.setPoints(refer.getPoints()+150);
+//                      if(refer.getReferredBy() !=null){
+//                          System.out.println("Inside savegoogle info ============= for popup to referrer");
+//                          model.addAttribute("popupMessage2" , "Congratulations");
+//                      }
                       userMasterRepository.save(refer);
                       //setting points for user who is doing signup.
-                      userMaster1.setPoints(userMaster.getPoints()+50);
+                      userMaster1.setPoints(userMaster1.getPoints()+50);
+                    //working
+                      if(userMaster1.getReferredBy() != null){
+                          System.out.println("==========checking condition for popup google one =============");
+                          redirectAttributes.addAttribute("referrerPopupMessage",true);// "🎉 You signed up successfully using a referral code! You and your referrer earned 100 points!");
+                      }
+
                   }
 
-
                   userMasterRepository.save(userMaster1);
-                  return "redirect:/home";
+                  return "redirect:/user/home";
               }
           }catch (Exception e){
               System.out.println("Exception is : " + e);
@@ -337,9 +363,9 @@ public class UserMasterController {
     public String skipProfile(Principal principal) {
         String username = principal.getName();
         UserMaster user = userMasterRepository.findByUsername(username).orElseThrow();
-        user.setCompleteProfile(false); // add this field in your entity
+        user.setCompleteProfile(false);
         userMasterRepository.save(user);
-        return "redirect:/home";
+        return "redirect:/user/home";
     }
 
 
@@ -465,6 +491,7 @@ public String resetPassword(Model model,
         return "usermaster/updatePassword";
     }
 }
+
 
     @GetMapping("/resendOTP")
     @ResponseBody
