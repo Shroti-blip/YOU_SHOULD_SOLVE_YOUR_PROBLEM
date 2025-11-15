@@ -241,13 +241,12 @@
                 <label for="password" class="form-label">Password</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-lock"></i></span>
-<!--                    <input type="password" name="password" th:field="*{password}" class="form-control"-->
-<!--                           id="password" placeholder="Create a strong password" required>-->
                     <input type="password" name="password" th:field="*{rawPassword}" class="form-control"
                            id="password" placeholder="Create a strong password" required>
                     <div class="form-text">
                         Must contain 1 letter, 1 number, 1 special char, and be 8+ characters long.
                     </div>
+                    <small id="passwordMSG2"></small>
                 </div>
                 <p th:each="err : ${#fields.errors('rawPassword')}" th:text="${err}" style="color:red;"></p>
             </div>
@@ -259,20 +258,31 @@
                     <option value=""  >Select your gender</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
-<!--                    <option value="other">Other</option>-->
-<!--                    <option value="prefer-not-to-say">Prefer not to say</option>-->
                 </select>
             </div>
 <!--th:field="*{referredBy}"-->
             <div class="mb-3">
-                <label for="referralCode" class="form-label">Referral Code (optional)</label>
-                <input type="text"  class="form-control" th:field="*{referralCode}" name="referralCode"
-                       id="referralCode" placeholder="Enter referral code if you have one">
+                <label class="form-label">Do you have a referral code?</label><br>
+                <div class="form-check">
+                    <input type="checkbox" id="hasReferral" class="form-check-input">
+                    <label for="hasReferral" class="form-check-label">Yes, I have one</label>
+                </div>
+            </div>
+
+            <!-- Referral input (hidden by default) -->
+            <div class="mb-3" id="referralContainer" style="display: none; transition: all 0.3s ease;">
+                <label for="referralCode" class="form-label">Referral Code</label>
+                <input type="text" class="form-control"
+                       th:field="*{referralCode}"
+                       name="referralCode"
+                       id="referralCode"
+                       placeholder="Enter referral code">
+                <small id="referralCodeMsg" class="form-text"></small>
             </div>
 
 
             <button type="submit" class="btn btn-signup">
-                <i class="fas fa-user-plus"></i> Create Account
+                <i  class="fas fa-user-plus"></i> Create Account
             </button>
 
 <!--            social icons  -->
@@ -348,23 +358,97 @@
     });
 </script>
 
-<!--for password-->
+<!--for checking referral code.-->
 <script>
-    const password = document.getElementById('password');
 
-    password.addEventListener('input', () => {
-      const value = password.value;
-      const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+      document.getElementById("referralCode").addEventListener("input", function () {
+        const referral = this.value;
+        const referralCodeMsg = document.getElementById("referralCodeMsg");
 
-      if (regex.test(value)) {
-        password.classList.add('is-valid');
-        password.classList.remove('is-invalid');
-      } else {
-        password.classList.add('is-invalid');
-        password.classList.remove('is-valid');
+        if (referral.trim() === "") {
+          referralCodeMsg.textContent = "";
+          referralCodeMsg.classList.remove("is-valid", "text-danger");
+          return;
+        }
+
+        fetch(`/check-referralCode?referralCode=${encodeURIComponent(referral)}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.exists) {
+              referralCodeMsg.textContent = "Valid Referral Code!";
+              referralCodeMsg.classList.add("is-valid");
+              referralCodeMsg.classList.remove("text-danger");
+            } else {
+              referralCodeMsg.textContent = "Invalid Referral Code.";
+              referralCodeMsg.classList.add("text-danger");
+              referralCodeMsg.classList.remove("is-valid");
+            }
+          })
+          .catch(err => {
+            console.error("Error checking referral code:", err);
+          });
+      });
+</script>
+
+<!--script for hiding referral field.-->
+<script>
+    const checkbox = document.getElementById('hasReferral');
+    const referralContainer = document.getElementById('referralContainer');
+    const referralInput = document.getElementById('referralCode');
+
+    checkbox.addEventListener('change', function () {
+        if (this.checked) {
+            referralContainer.style.display = 'block';
+            referralContainer.style.opacity = '0';
+            setTimeout(() => referralContainer.style.opacity = '1', 10);
+        } else {
+            referralContainer.style.opacity = '0';
+            setTimeout(() => referralContainer.style.display = 'none', 300);
+            referralInput.value = '';
+        }
+    });
+</script>
+
+
+<!--for password client side validation.-->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const password = document.getElementById('password');
+      const passwordMsg = document.getElementById('passwordMSG2');
+
+      let typingTimer;
+      const typingDelay = 800; // ms after user stops typing
+
+      password.addEventListener('input', () => {
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(validatePassword, typingDelay);
+      });
+
+      function validatePassword() {
+        const value = password.value.trim();
+        const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+        if (value === "") {
+          passwordMsg.innerHTML = "";
+          password.classList.remove('is-valid', 'is-invalid');
+          return;
+        }
+
+        if (regex.test(value)) {
+          password.classList.add('is-valid');
+          password.classList.remove('is-invalid');
+          passwordMsg.innerHTML = "✅ Strong password!";
+          passwordMsg.style.color = "green";
+        } else {
+          password.classList.add('is-invalid');
+          password.classList.remove('is-valid');
+          passwordMsg.innerHTML = "❌ Password must be at least 8 characters, include a letter, a number, and a special symbol.";
+          passwordMsg.style.color = "red";
+        }
       }
     });
 </script>
+
 
 <!--for no space in username-->
 <script>
@@ -373,7 +457,7 @@
     });
 </script>
 
-<!--for checking if it exists already or not-->
+<!--for checking if username exists already or not-->
 <script>
     document.addEventListener("DOMContentLoaded", () => {
       const usernameInput = document.getElementById("username");
@@ -409,6 +493,9 @@
       });
     });
 </script>
+
+
+
 
 <!--for suggesting username-->
 <!--<script>-->
@@ -493,6 +580,26 @@
         console.log("Checking:", suggestion, "Response:", data);
     });
 </script>
+
+<!--for popup thing-->
+<!--<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>-->
+
+<!--<script th:inline="javascript">-->
+<!--    /*<![CDATA[*/-->
+<!--        const popupMessage = /*[[${popupMessage}]]*/ null;-->
+
+<!--        if (popupMessage !== null) {-->
+<!--            Swal.fire({-->
+<!--                icon: 'success',-->
+<!--                title: 'Success!',-->
+<!--                text: popupMessage,-->
+<!--                showConfirmButton: false,-->
+<!--                timer: 3000,-->
+<!--                timerProgressBar: true-->
+<!--            });-->
+<!--        }-->
+<!--    /*]]>*/-->
+<!--</script>-->
 
 
 
