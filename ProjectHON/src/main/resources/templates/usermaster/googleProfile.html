@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hot or Not - Complete Profile</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          padding: 20px;
+          background: #f8f9fa;
+        }
+
+        .profile-container {
+          background: white;
+          border-radius: 20px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+          overflow: hidden;
+          max-width: 550px;
+          width: 100%;
+        }
+
+        .profile-header {
+          background: linear-gradient(135deg, #ff0080, #ff8c00);
+          color: white;
+          padding: 25px;
+          text-align: center;
+        }
+
+        .profile-header h2 {
+          margin: 0;
+          font-weight: 700;
+        }
+
+        .profile-body {
+          padding: 35px;
+        }
+
+        .form-label {
+          font-weight: 600;
+          color: #333;
+        }
+
+        .form-control, .form-select {
+          border: 2px solid #e0e0e0;
+          border-radius: 10px;
+          padding: 12px;
+          transition: all 0.3s;
+        }
+
+        .form-control:focus, .form-select:focus {
+          border-color: #ff8c00;
+          box-shadow: 0 0 0 0.2rem rgba(255, 140, 0, 0.25);
+        }
+
+        .profile-upload {
+          border: 3px dashed #ff8c00;
+          border-radius: 12px;
+          padding: 25px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.3s;
+          background: #f8f9fa;
+        }
+
+        .profile-upload:hover {
+          background: #fff3e0;
+          border-color: #ff0080;
+        }
+
+        .profile-upload i {
+          font-size: 3rem;
+          color: #ff8c00;
+          margin-bottom: 10px;
+        }
+
+        .btn-save {
+          background: linear-gradient(135deg, #ff0080, #ff8c00);
+          border: none;
+          color: white;
+          padding: 14px;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 1.1rem;
+          width: 100%;
+          transition: transform 0.2s;
+        }
+
+        .btn-save:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(255, 140, 0, 0.4);
+        }
+
+        .skip-link {
+          text-align: center;
+          margin-top: 15px;
+        }
+
+        .skip-link a {
+          color: #ff0080;
+          text-decoration: none;
+          font-weight: 600;
+        }
+
+        .skip-link a:hover {
+          text-decoration: underline;
+        }
+
+    </style>
+</head>
+
+<body>
+<div class="profile-container">
+    <div class="profile-header">
+        <h2>Complete Your Profile</h2>
+<!--        <p class="mb-0">Add details to personalize your experience</p>-->
+    </div>
+
+    <div class="profile-body">
+        <form id="completeProfileForm" method="post"  th:action="@{/completeGoogleProfile}"
+              enctype="multipart/form-data">
+
+
+            <!-- Gender -->
+            <div class="mb-3">
+                <label for="gender" class="form-label">Gender</label>
+                <select class="form-select" name="gender"  id="gender" required>
+                    <option value=""  >Select your gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+
+            <!-- Password -->
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" name="password"  class="form-control"
+                           id="password" placeholder="Create a strong password" required>
+                    <div class="form-text">
+                        Must contain 1 letter, 1 number, 1 special char, and be 8+ characters long.
+                    </div>
+                    <small id="passwordMSG2"></small>
+                </div>
+<!--                <p th:each="err : ${#fields.errors('rawPassword')}" th:text="${err}" style="color:red;"></p>-->
+            </div>
+            <!-- Profile Image -->
+<!--            <div class="mb-3">-->
+<!--                <label class="form-label">Profile Picture</label>-->
+<!--                <div class="profile-upload" id="profileUpload">-->
+<!--&lt;!&ndash;                    <i class="fas fa-cloud-upload-alt"></i>&ndash;&gt;-->
+<!--                    <p class="mb-0">Click or drag image to upload</p>-->
+<!--                    <input type="file" id="profileImg" name="profilePhoto" accept="image/*" class="d-none" required>-->
+<!--                </div>-->
+<!--                <div id="preview" class="mt-3 text-center"></div>-->
+<!--            </div>-->
+
+            <!-- Referral Code -->
+            <div class="mb-3">
+                <label class="form-label">Do you have a referral code?</label><br>
+                <div class="form-check">
+                    <input type="checkbox" id="hasReferral" class="form-check-input">
+                    <label for="hasReferral" class="form-check-label">Yes, I have one</label>
+                </div>
+            </div>
+
+<!--             th:field="*{referralCode}"  -->
+            <!-- Referral input (hidden by default) -->
+            <div class="mb-3" id="referralContainer" style="display: none; transition: all 0.3s ease;">
+                <label for="referralCode" class="form-label">Referral Code</label>
+                <input type="text" class="form-control"
+                       name="referralCode"
+                       id="referralCode"
+                       placeholder="Enter referral code">
+                <small id="referralCodeMsg" class="form-text"></small>
+            </div>
+
+
+            <!-- Submit -->
+            <button type="submit" class="btn-save">
+                <i class="fas fa-save"></i> Save Profile
+            </button>
+
+            <!-- Skip Option -->
+<!--            <div class="skip-link">-->
+<!--                <a href="#">Skip for now</a>-->
+<!--            </div>-->
+        </form>
+    </div>
+</div>
+
+
+<!---->
+
+<!--for password client side validation.-->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const password = document.getElementById('password');
+      const passwordMsg = document.getElementById('passwordMSG2');
+
+      let typingTimer;
+      const typingDelay = 800; // ms after user stops typing
+
+      password.addEventListener('input', () => {
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(validatePassword, typingDelay);
+      });
+
+      function validatePassword() {
+        const value = password.value.trim();
+        const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+        if (value === "") {
+          passwordMsg.innerHTML = "";
+          password.classList.remove('is-valid', 'is-invalid');
+          return;
+        }
+
+        if (regex.test(value)) {
+          password.classList.add('is-valid');
+          password.classList.remove('is-invalid');
+          passwordMsg.innerHTML = "✅ Strong password!";
+          passwordMsg.style.color = "green";
+        } else {
+          password.classList.add('is-invalid');
+          password.classList.remove('is-valid');
+          passwordMsg.innerHTML = "❌ Password must be at least 8 characters, include a letter, a number, and a special symbol.";
+          passwordMsg.style.color = "red";
+        }
+      }
+    });
+</script>
+
+
+<!--for checking referral code.-->
+<script>
+
+    document.getElementById("referralCode").addEventListener("input", function () {
+      const referral = this.value;
+      const referralCodeMsg = document.getElementById("referralCodeMsg");
+
+      if (referral.trim() === "") {
+        referralCodeMsg.textContent = "";
+        referralCodeMsg.classList.remove("is-valid", "text-danger");
+        return;
+      }
+
+      fetch(`/check-referralCode?referralCode=${encodeURIComponent(referral)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.exists) {
+            referralCodeMsg.textContent = "Valid Referral Code!";
+            referralCodeMsg.classList.add("is-valid");
+            referralCodeMsg.classList.remove("text-danger");
+          } else {
+            referralCodeMsg.textContent = "Invalid Referral Code.";
+            referralCodeMsg.classList.add("text-danger");
+            referralCodeMsg.classList.remove("is-valid");
+          }
+        })
+        .catch(err => {
+          console.error("Error checking referral code:", err);
+        });
+    });
+</script>
+
+
+<!--script for hiding referral field.-->
+<script>
+    const checkbox = document.getElementById('hasReferral');
+    const referralContainer = document.getElementById('referralContainer');
+    const referralInput = document.getElementById('referralCode');
+
+    checkbox.addEventListener('change', function () {
+        if (this.checked) {
+            referralContainer.style.display = 'block';
+            referralContainer.style.opacity = '0';
+            setTimeout(() => referralContainer.style.opacity = '1', 10);
+        } else {
+            referralContainer.style.opacity = '0';
+            setTimeout(() => referralContainer.style.display = 'none', 300);
+            referralInput.value = '';
+        }
+    });
+</script>
+
+
+
+<!--Image preview js-->
+<script>
+    // Image upload preview
+    const profileUpload = document.getElementById('profileUpload');
+    const fileInput = document.getElementById('profileImg');
+    const preview = document.getElementById('preview');
+
+    profileUpload.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.innerHTML = `<img src="${e.target.result}" alt="Profile Preview" class="rounded-circle" width="120" height="120">`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+</script>
+</body>
+</html>
