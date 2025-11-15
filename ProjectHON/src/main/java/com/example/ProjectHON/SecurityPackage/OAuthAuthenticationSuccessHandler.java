@@ -90,7 +90,10 @@ public class OAuthAuthenticationSuccessHandler implements AuthenticationSuccessH
            userMaster.setEmail(email);
 //           userMaster.setGender(gender);
            userMaster.setProfilePhoto(imageBytes);
-           userMaster.setReferralCode(username.substring(0,3).toUpperCase()+UUID.randomUUID().toString().substring(0,5));
+           String referralCode=username.substring(0,3).toUpperCase()+UUID.randomUUID().toString().substring(0,5);
+           System.out.println("Referral Code : "+referralCode);
+           userMaster.setReferralCode(referralCode);
+           System.out.println("==========referal code is ==========" + userMaster.getReferralCode());
            userMaster.setRoleList(List.of("ROLE_USER"));
            userMaster.setLoginProvider("GOOGLE");
            userMasterRepository.save(userMaster);
@@ -113,7 +116,11 @@ public class OAuthAuthenticationSuccessHandler implements AuthenticationSuccessH
 
 
         //redirect to mapping directly
-        new DefaultRedirectStrategy().sendRedirect(request,response,"/user/googleProfile");
+        if(userMaster1==null || userMaster1.getPassword()==null) {
+            new DefaultRedirectStrategy().sendRedirect(request, response, "/user/googleProfile");
+        }else{
+            new DefaultRedirectStrategy().sendRedirect(request, response, "/user/home");
+        }
 //        new DefaultRedirectStrategy().sendRedirect(request,response,"user/profile");
     }
 
