@@ -258,6 +258,8 @@ public class UserMasterController {
                 user.setContactNo(userMaster.getContactNo());
                 user.setBio(userMaster.getBio());
                 user.setDateOfBirth(userMaster.getDateOfBirth());
+                int age = Period.between(user.getDateOfBirth(), LocalDate.now()).getYears();
+                System.out.println("======age of user is : " + age);
                 user.setRelationshipStatus(userMaster.getRelationshipStatus());
                 user.setJiolocation(userMaster.getJiolocation());
                 user.setGender(userMaster.getGender());
@@ -701,3 +703,4 @@ public void initBinder(WebDataBinder binder) {
 //        .orElseGet(() -> roleRepository.save(new Role("ROLE_USER")));
 //
 //user.setRoles(Set.of(userRole));
+
