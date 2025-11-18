@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #E4405F !important;
+        }
+
+        .post-card {
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .post-card:hover {
+            transform: scale(1.02);
+        }
+
+        .post-img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+
+        .username {
+            font-weight: 600;
+            color: #E4405F;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .username:hover {
+            text-decoration: underline;
+        }
+
+        .sidebar-card {
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-header {
+            font-weight: 600;
+            color: #E4405F;
+        }
+
+        .mutual-card {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 8px 12px;
+            background-color: #fff;
+        }
+          #mutualPopup{
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.6);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+          }
+
+        #termsPopup{
+             position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.6);
+                display:none;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="#">🔥 HON</a>
+        <div class="collapse navbar-collapse justify-content-end">
+            <ul class="navbar-nav">
+                <li class="nav-item mx-2">
+                    <a class="nav-link" th:href="@{/upload}">Upload</a>
+                </li>
+                <li class="nav-item mx-2">
+                    <a class="nav-link" th:href="@{/feed}">Feed</a>
+                </li>
+                <li class="nav-item mx-2">
+                    <span class="nav-link text-muted" th:text="${userSession.username}"></span>
+                </li>
+                <li class="nav-item">
+                    <a class="btn btn-outline-danger btn-sm" th:href="@{/logout}">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- MAIN CONTAINER -->
+<div class="container" style="margin-top: 100px;">
+    <div class="row g-4">
+
+        <!-- LEFT COLUMN - POSTS -->
+        <div class="col-md-8">
+            <h4 class="mb-4 text-danger">My Posts</h4>
+            <div class="row g-4">
+                <div class="col-md-6" th:each="post : ${posts}">
+                    <div class="card post-card">
+                        <img th:src="@{'/photo/' + ${post.postId}}" class="post-img" alt="Post Image">
+                        <div class="card-body">
+                            <p class="mb-2" th:text="${post.caption}"></p>
+                            <p class="text-muted small mb-1" th:text="'#' + ${post.hashtag}"></p>
+                            <p class="text-muted small" th:text="'Avg Rating: ' + ${post.rating}"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <div class="card shadow-sm p-3 rounded-4">
+
+                <!-- Mutual Crushes -->
+                <h5 class="fw-bold text-danger mb-2">💖 Mutual Crushes</h5>
+                <div th:if="${#lists.isEmpty(mutualCrushes)}">
+                    <p class="text-muted">No mutual crushes yet.</p>
+                </div>
+                <div th:each="mc : ${mutualCrushes}" class="mb-2">
+                        <span class="fw-semibold"
+                              th:text="${mc.requestBy.userId == userSession.userId ? mc.requestTo.username : mc.requestBy.username}"></span>
+                    <form th:action="@{/dumpCrush}" method="post" style="display:inline;">
+                        <input type="hidden" name="dumpId"
+                               th:value="${mc.requestBy.userId == userSession.userId ? mc.requestTo.userId : mc.requestBy.userId}">
+                        <button class="btn btn-sm btn-outline-danger">Dump</button>
+                    </form>
+                </div>
+
+                <hr>
+
+                <!-- Pending Requests -->
+                <h5 class="fw-bold text-warning mb-2">🕓 Hit-Ups</h5>
+                <div th:if="${#lists.isEmpty(pendingRequests)}">
+                    <p class="text-muted">No pending hits.</p>
+                </div>
+                <div th:each="req : ${pendingRequests}" class="mb-2">
+                    <span class="fw-semibold" th:text="${req.requestBy.username}"></span>
+                    <form th:action="@{/acceptCrush}" method="post" class="acceptForm" style="display:inline;">
+                        <input type="hidden" name="inviteId" th:value="${req.requestBy.userId}">
+                        <button type="button" class="btn btn-sm btn-success acceptBtn" onclick="openTermsPopup()">Accept</button>
+                    </form>
+                    <form th:action="@{/ignoreCrush}" method="post" style="display:inline;">
+                        <input type="hidden" name="inviteId" th:value="${req.requestBy.userId}">
+                        <button class="btn btn-sm btn-outline-secondary">Dodge</button>
+                    </form>
+                </div>
+
+                <hr>
+
+                <!-- Can Invite -->
+                <h5 class="fw-bold text-primary mb-2">💌 Invite</h5>
+                <div th:if="${#lists.isEmpty(canInvite)}">
+                    <p class="text-muted">No one eligible to invite yet.</p>
+                </div>
+                <div th:each="u : ${canInvite}" class="mb-2">
+                    <span class="fw-semibold" th:text="${u.username}"></span>
+                    <form th:action="@{/inviteCrush}" method="post" class="inviteForm" style="display:inline;">
+                        <input type="hidden" name="targetId" th:value="${u.userId}">
+                        <button type="button" class="btn btn-sm btn-outline-primary inviteBtn" onclick="openTermsPopup()">Hit</button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+    <!-- Lottie Animation Container -->
+    <div id="mutualPopup" th:if="${showMutualPopup}">
+        <div style="background: white; padding: 30px; border-radius: 20px;
+              text-align: center; box-shadow: 0 0 20px rgba(0,0,0,0 .3);">
+            <dotlottie-wc
+                    src=""
+                    style="width: 300px;height: 300px"
+                    autoplay></dotlottie-wc>
+            <h3 style="color:#ff4081;">It’s a Mutual Crush! 💖</h3>
+            <p>Congrats! You both like each other.</p>
+            <button class="closeBtn" onclick="closeMutualPopup()" style="padding: 8px 16px; background-color:#ff4081; color:white;
+                   border:none; border-radius:8px; cursor:pointer;">Close
+            </button>
+        </div>
+    </div>
+
+    <div id="termsPopup">
+        <div style="background:white; padding:30px; border-radius:15px; width:380px; text-align:center;">
+<!--            <dotlottie-wc src="https://lottie.host/1e3e65b5-eaac-4c32-bd33-5c0db1219770/VBrnQyGxr7.lottie"-->
+<!--                          style="width:250px;height:250px;" autoplay></dotlottie-wc>-->
+
+            <h5> Do you Want to Invite ?</h5>
+            <div th:if="${firstUse}">
+                <h4 class="text-danger">Terms & Conditions</h4>
+                <p>Loot lunga</p>
+            </div>
+            <button type="submit" class="agreeBtn" onsubmit="agreeTermsPopup()"
+                    style="padding:10px 20px; background:#ff4081; color:white; border:none; border-radius:8px;">
+                I Agree
+            </button>
+            <button class="closeBtn" onclick="closeTermsPopup()"
+                    style="padding:10px 20px; background:skyblue; color:white; border:none; border-radius:8px;">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Lottie Script -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.5/dist/dotlottie-wc.js" type="module"></script>
+
+    <script>
+        function closeMutualPopup() {
+            document.getElementById('mutualPopup').style.display = 'none';
+        }
+
+        function closeTermsPopup(){
+            document.getElementById('termsPopup').style.display = 'none';
+        }
+        function openTermsPopup(){
+            document.getElementById('termsPopup').style.display = 'flex';
+        }
+        function agreeTermsPopup(){
+            document.getElementById('termsPopup').style.display = 'none';
+        }
+    </script>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
