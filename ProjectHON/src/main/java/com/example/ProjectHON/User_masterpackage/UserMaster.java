@@ -1,11 +1,13 @@
 package com.example.ProjectHON.User_masterpackage;
 
 import com.example.ProjectHON.Badge_masterpackage.BadgeMaster;
+import com.example.ProjectHON.Post_Report.PostReport;
 import com.example.ProjectHON.Post_masterpackage.PostMaster;
 import com.example.ProjectHON.Rating_masterpackage.RatingMaster;
 import com.example.ProjectHON.Whisper_masterpackage.WhisperMaster;
+import com.example.ProjectHON.streakhistorypackage.StreakHistory;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,14 +17,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-//import lombok.*;
 
 
 @Entity
-//@Data
-//@NoArgsConstructor
-//@AllArgsConstructor
-//@Builder
 @Table(name = "users_master")
 public class UserMaster implements UserDetails {
     @Id
@@ -47,10 +44,45 @@ public class UserMaster implements UserDetails {
     @ManyToMany(mappedBy = "receiver", cascade = CascadeType.ALL)
     private List<WhisperMaster> receivedWhispers; // Receiver
 
-//    for referral thing.
-//    @OneToMany(mappedBy = "referredBy" ,cascade=CascadeType.ALL)
-//    private List<UserMaster> referredBy= new ArrayList<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<StreakHistory> streakHistory = new ArrayList<>();
 
+
+    private String username;
+
+    private String fullName;
+
+    private String password;
+
+    private String email;
+
+    private double points;
+
+    private byte[] profilePhoto;
+
+    private String gender;
+
+    private LocalDate dateOfBirth;
+
+    private LocalDate joinDate;
+
+    private Boolean status = true; //Active, Inactive
+
+    private String contactNo;
+
+    private String relationshipStatus; //Single, Married, Committed
+
+    private String bio;
+
+    private String jeoLocation;
+
+    private Integer streakDays = 0  ;          // Number of consecutive days the user has posted
+    private Integer streakWeeks = 0;         // Number of consecutive full weeks
+    private Integer currentPointsPerPost = 0 ; // Current reward rate (points per post)
+    private LocalDate lastPostDate;       // Date of the user's last post
+
+
+    // Muskan's part
     @ManyToOne
     @JoinColumn(name = "referred_by_id") // column to store the referrer’s ID
     private UserMaster referredBy;
@@ -59,60 +91,27 @@ public class UserMaster implements UserDetails {
     @OneToMany(mappedBy = "referredBy", cascade = CascadeType.ALL)
     private List<UserMaster> referrals = new ArrayList<>();
 
+    @OneToMany(mappedBy = "referredFromUser" , cascade = CascadeType.ALL)
+    private List<ReferralMaster> referredFromUser;
 
-    //    @NotBlank(message = "Username is required")
-    @Size(min = 4, max = 20, message = "Username must be 4–20 characters long")
-    @Pattern(regexp = "^[^\\s]+$", message = "Username cannot contain spaces")
-    private String username;
+    @OneToMany(mappedBy = "referredToUser" , cascade = CascadeType.ALL)
+    private List<ReferralMaster> referredToUser;
 
-    @Column(name="fullname")
-    private String fullName;
+//        for report thing  use this
+//@OneToMany(mappedBy = "reporter")
+//private List<PostReport> reportsMade;
+//
+//    @OneToMany(mappedBy = "offender")
+//    private List<PostReport> reportsReceived;
 
 
-    // 🟩 Add a transient field for validation
-@Transient
-@Pattern(
-        regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{8,15}$",
-        message = "Password must be 8–15 characters long and include at least 1 letter, 1 number, and 1 special character."
-)
-private String rawPassword;
-
-private String password;
-
-    @Email(message = "Please enter a valid email address")
-    private String email;
-
-    private double points = 0;
-
-    @Column(name = "profile_photo")
-    private byte[] profilePhoto;
-
-    private String gender;
-
-    @Column(name = "date_of_birth")
-    @Past(message = "Date of birth must be in the past")
-    private LocalDate dateOfBirth;
-
-    @Column(name = "join_date")
-    private LocalDate joinDate = LocalDate.now();
-
-    private Boolean status = true; //Active, Inactive
-
+    @Transient
     @Pattern(
-            regexp = "^$|^[6-9]\\d{9}$",
-            message = "Enter a valid 10-digit Indian mobile number"
+            regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{8,15}$",
+            message = "Password must be 8–15 characters long and include at least 1 letter, 1 number, and 1 special character."
     )
-    @Column(name = "contact_no")
-    private String contactNo;
+    private String rawPassword;
 
-    @Column(name = "relationship_status")
-    private String relationshipStatus; //Single, Married, Committed
-
-    @Size(max = 150, message = "Bio should not exceed 150 characters")
-    private String bio;
-
-
-    private String jiolocation;
 
     private String loginProvider = "DEFAULT";
 
@@ -120,110 +119,17 @@ private String password;
     @Column(name = "complete_profile")
     private Boolean completeProfile = false;
 
-//    For referral code
-
     private String referralCode;
 
-    public String getReferralCode() {
-        return referralCode;
+    private Boolean referredByPopup = false;
+
+
+    public Boolean getReferredByPopup() {
+        return referredByPopup;
     }
 
-    public void setReferralCode(String referralCode) {
-        this.referralCode = referralCode;
-    }
-
-
-
-
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "role")
-    private List<String> roleList = new ArrayList<>();
-
-
-    public UserMaster() {
-    }
-
-
-    public UserMaster(Long userId, List<BadgeMaster> badge, List<PostMaster> post, List<RatingMaster> userFrom, List<RatingMaster> userTo, List<WhisperMaster> sentWhispers, List<WhisperMaster> receivedWhispers, String username, String fullName, String rawPassword, String password, String email, double points, byte[] profilePhoto, String gender, LocalDate dateOfBirth, LocalDate joinDate, Boolean status, String contactNo, String relationshipStatus, String bio, String jiolocation, String loginProvider, List<String> roleList) {
-        this.userId = userId;
-        this.badge = badge;
-        this.post = post;
-        this.userFrom = userFrom;
-        this.userTo = userTo;
-        this.sentWhispers = sentWhispers;
-        this.receivedWhispers = receivedWhispers;
-        this.username = username;
-        fullName = fullName;
-        this.rawPassword = rawPassword;
-        this.password = password;
-        this.email = email;
-        this.points = points;
-        this.profilePhoto = profilePhoto;
-        this.gender = gender;
-        this.dateOfBirth = dateOfBirth;
-        this.joinDate = joinDate;
-        this.status = status;
-        this.contactNo = contactNo;
-        this.relationshipStatus = relationshipStatus;
-        this.bio = bio;
-        this.jiolocation = jiolocation;
-        this.loginProvider = loginProvider;
-        this.roleList = roleList;
-    }
-
-    public UserMaster getReferredBy() {
-        return referredBy;
-    }
-
-    public void setReferredBy(UserMaster referredBy) {
-        this.referredBy = referredBy;
-    }
-
-    public List<UserMaster> getReferrals() {
-        return referrals;
-    }
-
-    public void setReferrals(List<UserMaster> referrals) {
-        this.referrals = referrals;
-    }
-
-    public Boolean getCompleteProfile() {
-        return completeProfile;
-    }
-
-    public void setCompleteProfile(Boolean completeProfile) {
-        this.completeProfile = completeProfile;
-    }
-
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public Boolean getStatus() {
-        return status;
-    }
-
-    public List<String> getRoleList() {
-        return roleList;
-    }
-
-    public void setRoleList(List<String> roleList) {
-        this.roleList = roleList;
-    }
-
-
-    public String getLoginProvider() {
-        return loginProvider;
-    }
-
-    public void setLoginProvider(String loginProvider) {
-        this.loginProvider = loginProvider;
+    public void setReferredByPopup(Boolean referredByPopup) {
+        this.referredByPopup = referredByPopup;
     }
 
     public Long getUserId() {
@@ -310,9 +216,14 @@ private String password;
         this.username = username;
     }
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
+    private List<String> roleList = new ArrayList<>();
+
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // List of roles{ADMIN,USER}
         Collection<SimpleGrantedAuthority>roles=roleList.stream().map(role->new SimpleGrantedAuthority(role)).collect(Collectors.toList());
         return roles;
     }
@@ -374,6 +285,7 @@ private String password;
     }
 
 
+
     public void setStatus(Boolean status) {
         this.status = status;
     }
@@ -402,12 +314,101 @@ private String password;
         this.bio = bio;
     }
 
-    public String getJiolocation() {
-        return jiolocation;
+
+    public String getJeoLocation() {
+        return jeoLocation;
     }
 
-    public void setJiolocation(String jiolocation) {
-        this.jiolocation = jiolocation;
+    public void setJeoLocation(String jeoLocation) {
+        this.jeoLocation = jeoLocation;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public List<String> getRoleList() {
+        return roleList;
+    }
+
+    public void setRoleList(List<String> roleList) {
+        this.roleList = roleList;
+    }
+
+    public List<StreakHistory> getStreakHistory() {
+        return streakHistory;
+    }
+
+    public void setStreakHistory(List<StreakHistory> streakHistory) {
+        this.streakHistory = streakHistory;
+    }
+
+    public Boolean getStatus() {
+        return status;
+    }
+
+    public int getStreakDays() {
+        return streakDays;
+    }
+
+    public void setStreakDays(int streakDays) {
+        this.streakDays = streakDays;
+    }
+
+    public int getStreakWeeks() {
+        return streakWeeks;
+    }
+
+    public void setStreakWeeks(int streakWeeks) {
+        this.streakWeeks = streakWeeks;
+    }
+
+    public int getCurrentPointsPerPost() {
+        return currentPointsPerPost;
+    }
+
+    public void setCurrentPointsPerPost(int currentPointsPerPost) {
+        this.currentPointsPerPost = currentPointsPerPost;
+    }
+
+    public LocalDate getLastPostDate() {
+        return lastPostDate;
+    }
+
+    public void setLastPostDate(LocalDate lastPostDate) {
+        this.lastPostDate = lastPostDate;
+    }
+
+    public void setStreakDays(Integer streakDays) {
+        this.streakDays = streakDays;
+    }
+
+    public void setStreakWeeks(Integer streakWeeks) {
+        this.streakWeeks = streakWeeks;
+    }
+
+    public void setCurrentPointsPerPost(Integer currentPointsPerPost) {
+        this.currentPointsPerPost = currentPointsPerPost;
+    }
+
+    public UserMaster getReferredBy() {
+        return referredBy;
+    }
+
+    public void setReferredBy(UserMaster referredBy) {
+        this.referredBy = referredBy;
+    }
+
+    public List<UserMaster> getReferrals() {
+        return referrals;
+    }
+
+    public void setReferrals(List<UserMaster> referrals) {
+        this.referrals = referrals;
     }
 
     public String getRawPassword() {
@@ -416,5 +417,29 @@ private String password;
 
     public void setRawPassword(String rawPassword) {
         this.rawPassword = rawPassword;
+    }
+
+    public String getLoginProvider() {
+        return loginProvider;
+    }
+
+    public void setLoginProvider(String loginProvider) {
+        this.loginProvider = loginProvider;
+    }
+
+    public Boolean getCompleteProfile() {
+        return completeProfile;
+    }
+
+    public void setCompleteProfile(Boolean completeProfile) {
+        this.completeProfile = completeProfile;
+    }
+
+    public String getReferralCode() {
+        return referralCode;
+    }
+
+    public void setReferralCode(String referralCode) {
+        this.referralCode = referralCode;
     }
 }
