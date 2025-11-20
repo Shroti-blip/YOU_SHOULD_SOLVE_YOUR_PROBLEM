@@ -1,12 +1,14 @@
 package com.example.ProjectHON.User_masterpackage;
 
+import com.example.ProjectHON.Post_masterpackage.PostMaster;
+import com.example.ProjectHON.Post_masterpackage.PostRepository;
+import com.example.ProjectHON.Rating_masterpackage.RatingRepository;
 import com.example.ProjectHON.SecurityPackage.ValidationConfig;
 import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.Banner;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,10 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
-import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.Period;
 import java.util.*;
+
 
 @Controller
 public class UserMasterController {
@@ -30,13 +31,27 @@ public class UserMasterController {
     UserMasterRepository userMasterRepository;
 
     @Autowired
+    PostRepository postRepository;
+
+    @Autowired
+    RatingRepository ratingRepository;
+
+    @Autowired
     EmailService emailService;
 
     @Autowired
-    private ValidationConfig validator;
+    PasswordEncoder passwordEncoder;
 
     @Autowired
-    PasswordEncoder passwordEncoder;
+    ValidationConfig validator;
+
+    @Autowired
+    ReferralRepository referralRepository;
+
+    @GetMapping("/")
+    public String getLogin(){
+        return "redirect:/login";
+    }
 
     @GetMapping("/register")
     public String getPage(Model model) {
@@ -44,20 +59,11 @@ public class UserMasterController {
         return "usermaster/signup";
     }
 
-    @GetMapping("/user/home")
-    public String getHomePage(@RequestParam(value = "referrerPopupMessage",required = false)Boolean isReferrerPopupAdded,
-                              Model model){
-        if(Boolean.TRUE.equals(isReferrerPopupAdded)){
-            model.addAttribute("referrerPopupMessage",true);
-            System.out.println("Inside the veer Method");
-        }
-
-        return "usermaster/dashboard";
-    }
 
     //      @RequestParam("photo") MultipartFile profile_pic,
     @PostMapping("/getotp")
     public String saveInfo(@Valid @ModelAttribute("user") UserMaster user,
+                           @RequestParam("referralCode")String referralCode,
                            BindingResult bindingResult,
                            Model model,
                            HttpSession session) {
@@ -66,36 +72,13 @@ public class UserMasterController {
 
         if (bindingResult.hasErrors()) {
             return "usermaster/signup";
-        } else {
-            //check age of user
-//            if (user.getDateOfBirth() != null) {
-//                int age = Period.between(user.getDateOfBirth(), LocalDate.now()).getYears();
-//                if (age < 18) {
-//                    model.addAttribute("errorMessage", "You must be at least 18 years old to register.");
-//                    return "usermaster/signup";
-//                }
-//            }
+        }
+
             try {
 
                 if (userMasterRepository.findByEmail(user.getEmail()).isPresent()) {
                     model.addAttribute("error", "Email address already exists");
                     return "usermaster/signup";
-                }
-
-               Optional<UserMaster> referral = userMasterRepository.findByReferralCode(user.getReferralCode());
-
-                if(referral.isPresent()){
-                    //get user who referred their code to the other one.
-                  UserMaster refer =  referral.get();
-                  System.out.println("========== Total points for that code owner =========" + refer.getPoints());
-
-                  //working
-                    user.setReferredBy(refer);
-                    // reward the referrer
-                    refer.setPoints(refer.getPoints()+150);
-                    userMasterRepository.save(refer);
-                    //setting points for user who is doing signup.
-                    user.setPoints(user.getPoints()+50);
                 }
 
 
@@ -105,19 +88,24 @@ public class UserMasterController {
                 //Add 10 minute more
                 LocalTime tenMinutesLater = currentTime.plusMinutes(10);
 
+
+                System.out.println("Referral Code is "+referralCode);
+
+
+                session.setAttribute("referralCode2",referralCode);
                 session.setAttribute("user", user);
                 session.setAttribute("systemOTP", otp);
                 session.setAttribute("tenMinutesLater", tenMinutesLater);
 
-                System.out.println("=============Inside try and catch gor getotp==============");
+//                System.out.println("=============Inside try and catch gor getotp==============");
 
             } catch (Exception e) {
                 System.out.println("here is problem." +e.getMessage());
                 e.printStackTrace();
             }
-        }
 
-        System.out.println("=============Before return statement.==============");
+
+//        System.out.println("=============Before return statement.==============");
 
         return "usermaster/getotp";
     }
@@ -132,6 +120,8 @@ public class UserMasterController {
             String systemOTP = (String) session.getAttribute("systemOTP");
             LocalTime tenMinutesLater = (LocalTime) session.getAttribute("tenMinutesLater");
 
+//            String referralCode=(String) session.getAttribute("referralCode2");
+            String referralCode=(String) session.getAttribute("referralCode2");
             LocalTime currentTime = LocalTime.now();
 
             //check if otp is not equal to system one or not.
@@ -154,25 +144,35 @@ public class UserMasterController {
             user.getRoleList().add("ROLE_USER");
 //           For generating User Referral code.
             user.setReferralCode(user.getUsername().substring(0,3).toUpperCase()+ UUID.randomUUID().toString().substring(0,5));
+
+
+            System.out.println("Referral Code inside the savedata method! "+referralCode );
+            Optional<UserMaster> referral = userMasterRepository.findByReferralCode(referralCode);
+
+            if(referral.isPresent()){
+                //get user who referred their code to the other one.
+                UserMaster refer =  referral.get();
+                    System.out.println("========== Total points for that code owner ========= " + refer.getPoints());
+
+                //working
+                user.setReferredBy(refer);
+                user.setReferredByPopup(true);
+                // reward the referrer
+                refer.setPoints(refer.getPoints()+150);
+                userMasterRepository.save(refer);
+                //setting points for user who is doing signup.
+                user.setPoints(user.getPoints()+50);
+                ReferralMaster referralMaster=new ReferralMaster();
+                referralMaster.setReferredFromUser(refer);
+                userMasterRepository.save(user);
+                referralMaster.setReferredToUser(user);
+                referralMaster.setShowPopup(false);
+                referralRepository.save(referralMaster);
+            }
             userMasterRepository.save(user);
             System.out.println("Successful Registration.");
             emailService.sendAfterRegistration(user.getEmail());
 
-
-            Optional<UserMaster> referral = userMasterRepository.findByReferralCode(user.getReferralCode());
-
-            if(referral.isPresent()) {
-
-//                UserMaster refer = referral.get();
-//                if (referral != null && !referral.isEmpty()) {
-//                    // show popup for new user
-//                    redirectAttributes.addFlashAttribute("popupMessage",
-//                            "🎉 You signed up successfully using a referral code! You and your referrer earned 100 points!");
-//                } else {
-//                    redirectAttributes.addFlashAttribute("popupMessage",
-//                            " Registration successful! Welcome aboard!");
-//                }
-            }
 
         } catch (Exception e) {
             model.addAttribute("error", "Error processing files: " + e.getMessage());
@@ -196,7 +196,7 @@ public class UserMasterController {
 
 
     //Login code
-    @GetMapping("user/profile")
+    @GetMapping("/user/profile")
     public String getLogin(Model model, HttpSession session) {
         System.out.println("Inside login mapping");
         Long userId = (Long) session.getAttribute("userId");
@@ -205,17 +205,18 @@ public class UserMasterController {
 
         if(userMaster.isPresent()) {
             UserMaster user = userMaster.get();
-            Long user_id = user.getUserId();
-            System.out.println("============Inside user login mapping============");
-            session.setAttribute("user_id", user_id);
+//            System.out.println("============Inside user login mapping============");
+            session.setAttribute("user_id", user.getUserId());
             session.setAttribute("user" , user);
             model.addAttribute("user", user);
             model.addAttribute("msg" , "User is Registered.");
 
-           if(user.getReferredBy() != null){
-               System.out.println("==========checking condition for popup=============");
-               model.addAttribute("popupMessage", "🎉 You earned 50 points for joining with a referral!");
-           }
+            if(user.getReferredBy() != null && user.getReferredByPopup()){
+                user.setReferredByPopup(false);
+                userMasterRepository.save(user);
+//                System.out.println("==========checking condition for popup=============");
+                model.addAttribute("popupMessage", "🎉 You earned 50 points for joining with a referral!");
+            }
 
             return "usermaster/user_profile";
         }
@@ -258,10 +259,8 @@ public class UserMasterController {
                 user.setContactNo(userMaster.getContactNo());
                 user.setBio(userMaster.getBio());
                 user.setDateOfBirth(userMaster.getDateOfBirth());
-                int age = Period.between(user.getDateOfBirth(), LocalDate.now()).getYears();
-                System.out.println("======age of user is : " + age);
                 user.setRelationshipStatus(userMaster.getRelationshipStatus());
-                user.setJiolocation(userMaster.getJiolocation());
+                user.setJeoLocation(userMaster.getJeoLocation());
                 user.setGender(userMaster.getGender());
                 user.setFullName(userMaster.getFullName());
                 System.out.println("==========Username is========= : " + userMaster.getFullName());
@@ -269,16 +268,16 @@ public class UserMasterController {
                     user.setProfilePhoto(file.getBytes());
 //                 System.out.println("====getting photos in byte=====");
                 }
-                //dont have to add joining date and password
+                //don't have to add joining date and password
 
                 userMasterRepository.save(user);
-                System.out.println("==========================prfile update done.==============================");
+               // System.out.println("==========================profile update done.==============================");
             }
         } catch (Exception e) {
             System.out.println("===========Exception===========" + e.getMessage());
         }
 
-        return "redirect:/user/home";
+        return "redirect:/user/rating";
     }
 
 
@@ -297,67 +296,63 @@ public class UserMasterController {
                                        @RequestParam("referralCode") String referralCode,
                                        RedirectAttributes redirectAttributes){
 
-//        if(bindingResult.hasErrors()){
-//            System.out.println("Error is here: ====="+bindingResult.getAllErrors());
-//            return "redirect:/user/googleProfile";
-//        }
-
         //first get session user then get db user;
         Long sessionUserId =   (Long) session.getAttribute("userId");
         Optional<UserMaster> userMasterOptional=  userMasterRepository.findById(sessionUserId);
 
-          if (sessionUserId == null) {
+        if (sessionUserId == null) {
             return "redirect:/login";
         }
 
-          try {
-              if(userMasterOptional != null){
-                  UserMaster userMaster1 =userMasterOptional.get();
-                  userMaster1.setGender(gender);
-                  userMaster1.setPassword(passwordEncoder.encode(password));
+        try {
+            if(userMasterOptional != null){
+                UserMaster userMaster1 =userMasterOptional.get();
+                userMaster1.setGender(gender);
+                userMaster1.setPassword(passwordEncoder.encode(password));
 //                  userMaster1.setDateOfBirth(userMaster.getDateOfBirth());
 //                  if(file != null && !file.isEmpty()){
 //                      userMaster1.setProfilePhoto(file.getBytes());
 //                  }
-                  System.out.println("==========inside google profile for saving code ========");
+                System.out.println("==========inside google profile for saving code ========");
 //                  userMaster1.setReferralCode(referralCode);
 
-                  //for referral code points .
-                  Optional<UserMaster> referral = userMasterRepository.findByReferralCode(referralCode);
+                //for referral code points .
+                Optional<UserMaster> referral = userMasterRepository.findByReferralCode(referralCode);
 
-                  if(referral.isPresent()){
-                      //get user who referred their code to the other one.
-                      UserMaster refer =  referral.get();
-                      System.out.println("========== Total points for that code owner =========" + refer.getPoints());
+                if(referral.isPresent()){
+                    //get user who referred their code to the other one.
+                    UserMaster refer =  referral.get();
+                    System.out.println("========== Total points for that code owner =========" + refer.getPoints());
 
-                      //working
-                      userMaster1.setReferredBy(refer);
-                      // reward the referrer
-                      refer.setPoints(refer.getPoints()+150);
-//                      if(refer.getReferredBy() !=null){
-//                          System.out.println("Inside savegoogle info ============= for popup to referrer");
-//                          model.addAttribute("popupMessage2" , "Congratulations");
-//                      }
-                      userMasterRepository.save(refer);
-                      //setting points for user who is doing signup.
-                      userMaster1.setPoints(userMaster1.getPoints()+50);
                     //working
-                      if(userMaster1.getReferredBy() != null){
-                          System.out.println("==========checking condition for popup google one =============");
-                          redirectAttributes.addAttribute("referrerPopupMessage",true);// "🎉 You signed up successfully using a referral code! You and your referrer earned 100 points!");
-                      }
+                    userMaster1.setReferredBy(refer);
+                    // reward the referrer
+                    refer.setPoints(refer.getPoints()+150);
 
-                  }
+                    userMasterRepository.save(refer);
+                    ReferralMaster referralMaster=new ReferralMaster();
+                    referralMaster.setReferredFromUser(refer);
+                    referralMaster.setReferredToUser(userMaster1);
+                    referralMaster.setShowPopup(false);
+                    referralRepository.save(referralMaster);
+                    //setting points for user who is doing signup.
+                    userMaster1.setPoints(userMaster1.getPoints()+50);
+                    //working
+                    if(userMaster1.getReferredBy() != null){
+                        redirectAttributes.addFlashAttribute("popupPoints", "You just earned 50 points for registering with a referral code!");// "🎉 You signed up successfully using a referral code! You and your referrer earned 100 points!");
+                    }
 
-                  userMasterRepository.save(userMaster1);
-                  return "redirect:/user/home";
-              }
-          }catch (Exception e){
-              System.out.println("Exception is : " + e);
-          }
+                }
+
+                userMasterRepository.save(userMaster1);
+                return "redirect:/user/rating";
+            }
+        }catch (Exception e){
+            System.out.println("Exception is : " + e);
+        }
 
 
-     return "usermaster/login";
+        return "usermaster/login";
     }
 
 
@@ -367,7 +362,7 @@ public class UserMasterController {
         UserMaster user = userMasterRepository.findByUsername(username).orElseThrow();
         user.setCompleteProfile(false);
         userMasterRepository.save(user);
-        return "redirect:/user/home";
+        return "redirect:/user/rating";
     }
 
 
@@ -434,65 +429,65 @@ public class UserMasterController {
     }
 
 
-@PostMapping("/resetPassword")
-@Transactional
-public String resetPassword(Model model,
-                            HttpSession session,
-                            @RequestParam("newPassword") String newPassword,
-                            @RequestParam("confirmPassword") String confirmPassword) {
+    @PostMapping("/resetPassword")
+    @Transactional
+    public String resetPassword(Model model,
+                                HttpSession session,
+                                @RequestParam("newPassword") String newPassword,
+                                @RequestParam("confirmPassword") String confirmPassword) {
 
-    System.out.println("Inside reset password.");
-
-
-    String email = (String) session.getAttribute("email");
+        System.out.println("Inside reset password.");
 
 
+        String email = (String) session.getAttribute("email");
 
-    //  Match both passwords
-    if (!newPassword.equals(confirmPassword)) {
-        model.addAttribute("error", "Passwords do not match.");
-        return "usermaster/updatePassword";
-    }
 
-    try {
-        Optional<UserMaster> userOpt = userMasterRepository.findByEmail(email);
-        System.out.println("Inside try and catch.");
 
-        if (userOpt.isPresent()) {
-            UserMaster userMaster = userOpt.get();
-
-            //  Set raw password for validation
-            userMaster.setRawPassword(newPassword);
-
-            // Validate the raw password using Bean Validation
-            Set<ConstraintViolation<UserMaster>> violations = validator.validator().validateProperty(userMaster, "rawPassword");
-            if (!violations.isEmpty()) {
-                String errorMessage = violations.iterator().next().getMessage();
-                model.addAttribute("error", errorMessage);
-                return "usermaster/updatePassword";
-            }
-
-            //  Encrypt before saving
-            String encryptedPassword = passwordEncoder.encode(newPassword);
-            userMaster.setPassword(encryptedPassword);
-
-            System.out.println("=================Inside saving process=============.");
-            userMasterRepository.save(userMaster);
-            System.out.println("================Inside try and catch save data===============");
-
-            model.addAttribute("success", "Password reset successfully. Please login.");
-            return "usermaster/login";
-        } else {
-            model.addAttribute("error", "User not found.");
-            return "usermaster/forgetPassword";
+        //  Match both passwords
+        if (!newPassword.equals(confirmPassword)) {
+            model.addAttribute("error", "Passwords do not match.");
+            return "usermaster/updatePassword";
         }
 
-    } catch (Exception e) {
-        e.printStackTrace();
-        model.addAttribute("error", "Error updating password: " + e.getMessage());
-        return "usermaster/updatePassword";
+        try {
+            Optional<UserMaster> userOpt = userMasterRepository.findByEmail(email);
+            System.out.println("Inside try and catch.");
+
+            if (userOpt.isPresent()) {
+                UserMaster userMaster = userOpt.get();
+
+                //  Set raw password for validation
+                userMaster.setRawPassword(newPassword);
+
+                // Validate the raw password using Bean Validation
+                Set<ConstraintViolation<UserMaster>> violations = validator.validator().validateProperty(userMaster, "rawPassword");
+                if (!violations.isEmpty()) {
+                    String errorMessage = violations.iterator().next().getMessage();
+                    model.addAttribute("error", errorMessage);
+                    return "usermaster/updatePassword";
+                }
+
+                //  Encrypt before saving
+                String encryptedPassword = passwordEncoder.encode(newPassword);
+                userMaster.setPassword(encryptedPassword);
+
+                System.out.println("=================Inside saving process=============.");
+                userMasterRepository.save(userMaster);
+                System.out.println("================Inside try and catch save data===============");
+
+                model.addAttribute("success", "Password reset successfully. Please login.");
+                return "usermaster/login";
+            } else {
+                model.addAttribute("error", "User not found.");
+                return "usermaster/forgetPassword";
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("error", "Error updating password: " + e.getMessage());
+            return "usermaster/updatePassword";
+        }
     }
-}
 
 
     @GetMapping("/resendOTP")
@@ -522,23 +517,23 @@ public String resetPassword(Model model,
 
 
 
-//    for stopping binding profile manually , image is getting saved in db.
+    //    for stopping binding profile manually , image is getting saved in db.
 //    or you can just change the name of profilePhoto in html and in requestparam
-@InitBinder
-public void initBinder(WebDataBinder binder) {
-    binder.setDisallowedFields("profilePhoto");
-}
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        binder.setDisallowedFields("profilePhoto");
+    }
 
 //    for showing profile image
 
     @GetMapping("/userphoto")
     public ResponseEntity<byte[]> userPhoto(Model model , HttpSession session){
-       Long userId = (Long) session.getAttribute("user_id");
-       UserMaster userMaster = userMasterRepository.findById(userId).orElse(null);
+        Long userId = (Long) session.getAttribute("user_id");
+        UserMaster userMaster = userMasterRepository.findById(userId).orElse(null);
 
-       if(userMaster == null){
-           return ResponseEntity.notFound().build();
-       }
+        if(userMaster == null){
+            return ResponseEntity.notFound().build();
+        }
 
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_JPEG)
@@ -560,10 +555,10 @@ public void initBinder(WebDataBinder binder) {
     @GetMapping("/check-username")
     @ResponseBody
     public ResponseEntity<Map<String , Boolean>> checkUserName(@RequestParam("username") String username){
-      boolean exists =   userMasterRepository.findByUsername(username).isPresent();
-      Map<String , Boolean> response = new HashMap<>();
-      response.put("exists" , exists);
-      return ResponseEntity.ok(response);
+        boolean exists =   userMasterRepository.findByUsername(username).isPresent();
+        Map<String , Boolean> response = new HashMap<>();
+        response.put("exists" , exists);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/check-referralCode")
@@ -575,13 +570,18 @@ public void initBinder(WebDataBinder binder) {
         return ResponseEntity.ok(response);
     }
 
-//    @GetMapping("/check-referralCode")
-//    public ResponseEntity<Map<String, Boolean>> checkReferralCode(@RequestParam String referralCode) {
-//        boolean exists = userMasterRepository.findByReferralCode(referralCode).isPresent();
-//        Map<String , Boolean> response  = Map.of("exists", exists);
-//        return ResponseEntity.ok(response); //  standard 200 OK
-//    }
+    @GetMapping("/userphoto/{postId}")
+    ResponseEntity<byte[]> getUserProfile(@PathVariable("postId")Long postId){
 
+        PostMaster postMaster=postRepository.findById(postId).orElse(null);// Admin Object for session creation
+        if(postMaster==null){
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(postMaster.getPhoto());
+
+    }
 
 }
 
@@ -603,104 +603,4 @@ public void initBinder(WebDataBinder binder) {
 
 
 
-
-
-
-
-
-
-
-
-
-//    @PostMapping("/resetPassword")
-//    @Transactional
-//    public String resetPassword(Model model, @RequestParam("otp") String otp, HttpSession session,
-//                                @RequestParam("newPassword") String newPassword,
-//                                @RequestParam("confirmPassword") String confirmPassword) {
-//        System.out.println("Inside reset password.");
-//
-//
-//        String sessionOtp = (String) session.getAttribute("otp");
-//        String email = (String)session.getAttribute("email");
-//        LocalTime timeSent = (LocalTime) session.getAttribute("systemTime");
-//        LocalTime tenMinLater = (LocalTime) session.getAttribute("tenMinLater");
-//
-//        // basic null checks
-//        if (sessionOtp == null || tenMinLater == null || email == null) {
-//            model.addAttribute("error", "Session expired. Please request a new OTP.");
-//            return "usermaster/forgetPassword";
-//        }
-//
-//        // trim user input and session otp to avoid whitespace mismatch
-//        String userOtp = otp == null ? "" : otp.trim();
-//        String expectedOtp = sessionOtp.trim();
-//
-//        // check expiry
-//        if (LocalTime.now().isAfter(tenMinLater)) {
-//            model.addAttribute("error", "OTP has expired. Please request a new one.");
-//            session.invalidate();
-//            return "usermaster/forgetPassword";
-//        }
-//
-//        // compare OTPs
-//        if (!sessionOtp.equals(otp.trim())) {
-//            model.addAttribute("error", "Invalid OTP.");
-//            return "usermaster/updatePassword";
-//        }
-//
-//        if (!newPassword.equals(confirmPassword)) {
-//            model.addAttribute("error", "Passwords do not match.");
-//            return "usermaster/updatePassword";
-//        }
-//
-////        if (newPassword.length() < 6) {
-////            model.addAttribute("error", "Password must be at least 6 characters long.");
-////            return "usermaster/updatePassword";
-////        }
-//
-//        try{
-//            Optional<UserMaster> userOpt = userMasterRepository.findByEmail(email);
-//            System.out.println("Inside try and catch.");
-//            if(userOpt.isPresent()){
-//
-//                if (!newPassword.matches("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&#^_])[A-Za-z\\d@$!%*?&#^_]{6,15}$")) {
-//                    model.addAttribute("error", "Password must be 6–15 characters long and include at least 1 letter, 1 number, and 1 special character.");
-//                    return "usermaster/updatePassword";
-//                }
-//
-//
-//
-//                //encrypt before saving.
-//                String encryptedPassword = passwordEncoder.encode(newPassword);
-//                System.out.println("=================Inside saving process=============.");
-//                UserMaster userMaster = userOpt.get();
-//                userMaster.setPassword(encryptedPassword);
-//                userMasterRepository.save(userMaster);
-//                System.out.println("================Inside try and catch save data===============");
-//                model.addAttribute("success", "Password reset successfully. Please login.");
-//                return "usermaster/login";
-//            }
-//            else {
-//                model.addAttribute("error", "User not found.");
-//                return "usermaster/forgetPassword";
-//            }
-//
-//        }catch (Exception e){
-//            model.addAttribute("error", "Error updating password: " + e.getMessage());
-//            return "usermaster/updatePassword";
-//        }
-//
-//    }
-
-
-
-
-
-
-
-
-//Role userRole = roleRepository.findByName("ROLE_USER")
-//        .orElseGet(() -> roleRepository.save(new Role("ROLE_USER")));
-//
-//user.setRoles(Set.of(userRole));
 
