@@ -1,12 +1,14 @@
 package com.example.ProjectHON.Post_masterpackage;
 
+import com.example.ProjectHON.Post_Report.PostReport;
+import com.example.ProjectHON.Rating_masterpackage.RatingMaster;
 import com.example.ProjectHON.Theme_masterpackage.ThemeMaster;
 import com.example.ProjectHON.User_masterpackage.UserMaster;
-//import com.example.ProjectHON.User_masterpackage.Usermaster;
 import jakarta.persistence.*;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 public class PostMaster {
@@ -18,30 +20,39 @@ public class PostMaster {
     @JoinColumn(name = "userId")
     private UserMaster user;
 
-
     @ManyToOne
     @JoinColumn(name = "themeId")
     private ThemeMaster theme;
 
     private byte[] photo;
-
-    private Long rating;
-
     private LocalDateTime dateTime;
-
     private String hashtag;
+    private String caption; // Post Title
 
-    private String caption;//Post Title
+    @OneToMany(mappedBy = "post_id", cascade = CascadeType.ALL)
+    private List<RatingMaster> ratings;
 
-    public PostMaster(Long postId, UserMaster user, ThemeMaster theme, byte[] photo, Long rating, LocalDateTime dateTime, String hashtag, String caption) {
+    @OneToMany(mappedBy = "postreport", cascade = CascadeType.ALL)
+    private List<PostReport> reports;
+
+
+    public PostMaster(Long postId, UserMaster user, ThemeMaster theme, byte[] photo, LocalDateTime dateTime, String hashtag, String caption, List<RatingMaster> ratings) {
         this.postId = postId;
         this.user = user;
         this.theme = theme;
         this.photo = photo;
-        this.rating = rating;
         this.dateTime = dateTime;
         this.hashtag = hashtag;
         this.caption = caption;
+        this.ratings = ratings;
+    }
+
+    public List<RatingMaster> getRatings() {
+        return ratings;
+    }
+
+    public void setRatings(List<RatingMaster> ratings) {
+        this.ratings = ratings;
     }
 
     public PostMaster() {
@@ -79,13 +90,6 @@ public class PostMaster {
         this.photo = photo;
     }
 
-    public Long getRating() {
-        return rating;
-    }
-
-    public void setRating(Long rating) {
-        this.rating = rating;
-    }
 
     public LocalDateTime getDateTime() {
         return dateTime;
@@ -110,4 +114,15 @@ public class PostMaster {
     public void setHashtag(String hashtag) {
         this.hashtag = hashtag;
     }
+
+    // --- Average rating calculation ---
+    @Transient
+    public Double getAverageRating() {
+        if (ratings == null || ratings.isEmpty()) return 0.0;
+        return ratings.stream()
+                .mapToDouble(RatingMaster::getRating)
+                .average()
+                .orElse(0.0);
+    }
+
 }
